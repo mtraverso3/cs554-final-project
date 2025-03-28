@@ -1,7 +1,10 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
+import { auth0 } from "@/lib/auth0";
 
-export function Navbar() {
+export async function Navbar() {
+  const session = await auth0.getSession();
+
   return (
     <nav className="w-full bg-white shadow-md">
       <div className="mx-auto px-4 py-3 flex justify-between items-center">
@@ -14,12 +17,20 @@ export function Navbar() {
 
         {/* Auth Buttons */}
         <div className="flex space-x-4">
-          <Button variant="outline" asChild>
-            <a href="/auth/signin">Sign In</a>
-          </Button>
-          <Button asChild>
-            <a href="/auth/signup">Sign Up</a>
-          </Button>
+          {session ? (
+            <Button variant="outline" asChild>
+              <a href="/auth/logout">Logout</a>
+            </Button>
+          ) : (
+            <>
+              <Button variant="outline" asChild>
+                <a href="/auth/login">Sign In</a>
+              </Button>
+              <Button asChild>
+                <a href="/auth/login?screen_hint=signup">Sign Up</a>
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </nav>
