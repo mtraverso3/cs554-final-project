@@ -1,6 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { auth0 } from "@/lib/auth0";
+import Link from "next/link";
 
 export async function Navbar() {
   const session = await auth0.getSession();
@@ -18,9 +19,14 @@ export async function Navbar() {
         {/* Auth Buttons */}
         <div className="flex space-x-4">
           {session ? (
-            <Button variant="outline" asChild>
-              <a href="/auth/logout">Logout</a>
-            </Button>
+            <>
+              <Button variant="outline" asChild>
+                <Link href="/">Go to app</Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <a href="/auth/logout">Logout</a>
+              </Button>
+            </>
           ) : (
             <>
               <Button variant="outline" asChild>
