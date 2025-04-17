@@ -1,10 +1,10 @@
 import { auth0 } from "@/lib/auth0";
 import { Navbar } from "@/components/Navbar";
-import {CreateFlashcard} from "@/components/createFlashcard";
+//import {CreateFlashcard} from "@/components/createFlashcard";
 
 export default async function HomePage() {
   const session = await auth0.getSession();
-  console.log(session);
+  //console.log(session);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -16,7 +16,7 @@ export default async function HomePage() {
         <p className="text-lg text-gray-500">
           {session ? `Welcome, ${session.user.name}` : "Welcome, Guest"}
         </p>
-          {<CreateFlashcard />}
+          {/*<CreateFlashcard />*/}
       </div>
     </div>
   );
