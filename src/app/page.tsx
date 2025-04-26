@@ -6,6 +6,5 @@ export default async function Home() {
   if (session) {
     redirect("/user/home");
   }
-
   redirect("/home");
 }

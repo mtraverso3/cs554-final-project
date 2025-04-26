@@ -1,11 +1,11 @@
 'use client';
-
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { BookOpenIcon, LayersIcon, PlusIcon, ChevronDown, ChevronUp, BarChart2, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { redirect } from 'next/dist/server/api-utils';
 
 type Flashcard = {
   id: string;
