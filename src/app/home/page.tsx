@@ -1,11 +1,12 @@
+"use server";
 import { auth0 } from "@/lib/auth0";
 import { Navbar } from "@/components/Navbar";
-//import {CreateFlashcard} from "@/components/createFlashcard";
+import { useCallback } from "react";
+import { ServerOff } from "lucide-react";
+
 
 export default async function HomePage() {
   const session = await auth0.getSession();
-  //console.log(session);
-
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
