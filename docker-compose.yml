@@ -1,9 +1,19 @@
 services:
-  cs554-webapp:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    env_file:
-      - .env.local
+  redis-stack:
+    image: redis/redis-stack-server:latest
+    restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "6379:6379"
+  mongo:
+    image: mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+#  cs554-webapp:
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
+#    env_file:
+#      - .env.local
+#    ports:
+#      - "3000:3000"
