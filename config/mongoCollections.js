@@ -16,3 +16,4 @@ const getCollectionFn = (collection) => {
 export const users = getCollectionFn('users');
 export const quizzes = getCollectionFn('quizzes');
 export const flashcards = getCollectionFn('flashcards');
+export const decks = getCollectionFn('decks');
