@@ -13,7 +13,7 @@ export async function Layout({ children }: { children: React.ReactNode }) {
   }
   let userObject = session?.user;
   let theUser = await users.getUserBySub(userObject?.sub);
-  console.log(theUser);
+  //console.log(theUser);
   if(!theUser) {
     if(userObject.given_name && userObject.family_name) {
       await signup(userObject.given_name, userObject.family_name);

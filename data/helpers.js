@@ -10,6 +10,9 @@ export function checkString(str, name) {
     return str;
 }
 export function checkId(id) {
+    if(typeof id !== "string") {
+        id = id.toString();
+    }
     id = checkString(id, "id");
     if(!id) {
         return null;
