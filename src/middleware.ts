@@ -5,7 +5,7 @@ import { The_Nautigal } from "next/font/google";
 
 export async function middleware(request: NextRequest) {
   const authResponse = await auth0.middleware(request);
-  console.log("middleware test");
+  //console.log("middleware test");
   // if path starts with /auth, let the auth middleware handle it
   if (request.nextUrl.pathname.startsWith("/auth")) {
     return authResponse;
