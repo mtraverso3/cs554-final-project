@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { BookOpenIcon, FilterIcon, PlusIcon, SearchIcon, ArrowUpDown } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { ArrowUpDown, FilterIcon, PlusIcon, SearchIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -11,8 +11,8 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 
 export type Quiz = {
   id: string;
@@ -75,7 +75,8 @@ const generateDummyQuizzes = (): Quiz[] => [
   {
     id: "3",
     title: "Divine Beasts & Ancient Tech",
-    description: "Do you know your way around the Sheikah inventions and beasts?",
+    description:
+      "Do you know your way around the Sheikah inventions and beasts?",
     deckId: "botw-specifics",
     flashcardCount: 4,
     createdAt: new Date("2025-04-02"),
@@ -83,7 +84,8 @@ const generateDummyQuizzes = (): Quiz[] => [
   {
     id: "4",
     title: "Zelda Characters Quiz",
-    description: "Test your knowledge about the most important characters in Hyrule.",
+    description:
+      "Test your knowledge about the most important characters in Hyrule.",
     deckId: "zelda-characters",
     flashcardCount: 6,
     createdAt: new Date("2025-04-05"),
@@ -114,7 +116,7 @@ export default function QuizLibrary() {
       filtered = filtered.filter(
         (quiz) =>
           quiz.title.toLowerCase().includes(query) ||
-          quiz.description.toLowerCase().includes(query)
+          quiz.description.toLowerCase().includes(query),
       );
     }
 
@@ -125,7 +127,7 @@ export default function QuizLibrary() {
     filtered.sort((a, b) =>
       sortOrder === "asc"
         ? a.createdAt.getTime() - b.createdAt.getTime()
-        : b.createdAt.getTime() - a.createdAt.getTime()
+        : b.createdAt.getTime() - a.createdAt.getTime(),
     );
 
     setFilteredQuizzes(filtered);
@@ -181,7 +183,10 @@ export default function QuizLibrary() {
                 </option>
               ))}
             </select>
-            <FilterIcon className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+            <FilterIcon
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+              size={14}
+            />
           </div>
 
           <Button
@@ -217,11 +222,15 @@ export default function QuizLibrary() {
 
               <CardFooter className="flex justify-between pt-2">
                 <Button variant="default" size="sm" asChild>
-                  <Link href={`/user/quiz-library/${quiz.id}/study`}>Study</Link>
+                  <Link href={`/user/quiz-library/${quiz.id}/study`}>
+                    Study
+                  </Link>
                 </Button>
                 <div className="space-x-2">
                   <Button variant="ghost" size="sm" asChild>
-                    <Link href={`/user/quiz-library/${quiz.id}/edit`}>Edit</Link>
+                    <Link href={`/user/quiz-library/${quiz.id}/edit`}>
+                      Edit
+                    </Link>
                   </Button>
                   <Button variant="ghost" size="sm">
                     Delete
@@ -235,7 +244,9 @@ export default function QuizLibrary() {
           <Card className="border-dashed h-full flex flex-col justify-center items-center">
             <CardContent className="flex flex-col items-center justify-center py-10">
               <PlusIcon className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-center text-muted-foreground mb-4">Create a new quiz</p>
+              <p className="text-center text-muted-foreground mb-4">
+                Create a new quiz
+              </p>
               <Button asChild>
                 <Link href="/user/quiz-library/create">New Quiz</Link>
               </Button>
