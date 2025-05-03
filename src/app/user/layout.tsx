@@ -3,22 +3,21 @@ import { UserSidebar } from "@/components/UserSidebar";
 import { redirect } from "next/navigation";
 import { auth0 } from "@/lib/auth0";
 import * as users from "../../../data/users.js";
-import {Signup} from "@/components/signup";
-import { signup } from '@/lib/quizForms';
+import { Signup } from "@/components/signup";
+import { signup } from "@/lib/quizForms";
 
 export async function Layout({ children }: { children: React.ReactNode }) {
   const session = await auth0.getSession();
   if (!session) {
     redirect("/auth/login");
   }
-  let userObject = session?.user;
-  let theUser = await users.getUserBySub(userObject?.sub);
+  const userObject = session?.user;
+  const theUser = await users.getUserBySub(userObject?.sub);
   //console.log(theUser);
-  if(!theUser) {
-    if(userObject.given_name && userObject.family_name) {
+  if (!theUser) {
+    if (userObject.given_name && userObject.family_name) {
       await signup(userObject.given_name, userObject.family_name);
-    }
-    else {
+    } else {
       return <Signup></Signup>;
     }
   }

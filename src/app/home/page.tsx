@@ -1,9 +1,6 @@
 "use server";
 import { auth0 } from "@/lib/auth0";
 import { Navbar } from "@/components/Navbar";
-import { useCallback } from "react";
-import { ServerOff } from "lucide-react";
-
 
 export default async function HomePage() {
   const session = await auth0.getSession();
@@ -17,7 +14,7 @@ export default async function HomePage() {
         <p className="text-lg text-gray-500">
           {session ? `Welcome, ${session.user.name}` : "Welcome, Guest"}
         </p>
-          {/*<CreateFlashcard />*/}
+        {/*<CreateFlashcard />*/}
       </div>
     </div>
   );

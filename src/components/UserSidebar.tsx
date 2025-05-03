@@ -32,13 +32,13 @@ const appLinks = [
 
 export function UserSidebar({ user }: { user: { name: string } }) {
   const {
-    state,
+    // state,
     open,
-    setOpen,
-    openMobile,
-    setOpenMobile,
-    isMobile,
-    toggleSidebar,
+    // setOpen,
+    // openMobile,
+    // setOpenMobile,
+    // isMobile,
+    // toggleSidebar,
   } = useSidebar();
 
   return (
