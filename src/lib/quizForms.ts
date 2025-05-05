@@ -3,7 +3,8 @@
 import { authenticateUser, auth0 } from "@/lib/auth/auth";
 import * as users from "@/lib/db/data/users";
 import * as decks from "@/lib/db/data/decks";
-import { User } from "@/lib/db/data/schema";
+import {Deck, Quiz, User} from "@/lib/db/data/schema";
+import * as quizzes from "@/lib/db/data/quizzes";
 
 export async function createFlashcard(front: string, back: string) {
   console.log(front, back);
@@ -36,4 +37,13 @@ export async function addDeck(name: string, description: string) {
   const userObject: User = await authenticateUser();
 
   await decks.createDeck(name, description, userObject._id.toString());
+}
+
+export async function getQuizzes(): Promise<string> {
+  const userObject: User = await authenticateUser();
+  const userId = userObject._id.toString();
+
+  const quizList: Quiz[] = await quizzes.getQuizzesByUserId(userId);
+  return JSON.stringify(quizList);
+
 }
