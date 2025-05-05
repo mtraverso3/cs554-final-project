@@ -1,31 +1,35 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { UserSidebar } from "@/components/UserSidebar";
 import { redirect } from "next/navigation";
-import { auth0 } from "@/lib/auth0";
-import * as users from "../../../data/users.js";
-import { Signup } from "@/components/signup";
+import { auth0 } from "@/lib/auth/auth";
+import * as users from "@/lib/db/data/users";
+import { OnboardingPage } from "@/components/onboardingPage";
 import { signup } from "@/lib/quizForms";
+import { User } from "@/lib/db/data/schema";
 
 export async function Layout({ children }: { children: React.ReactNode }) {
   const session = await auth0.getSession();
   if (!session) {
     redirect("/auth/login");
   }
+
   const userObject = session?.user;
-  const theUser = await users.getUserBySub(userObject?.sub);
-  //console.log(theUser);
-  if (!theUser) {
+
+  // Ensure the user has been onboarded
+  let user: User = await users.getUserBySub(userObject?.sub);
+  if (!user) {
     if (userObject.given_name && userObject.family_name) {
       await signup(userObject.given_name, userObject.family_name);
+      user = await users.getUserBySub(userObject?.sub);
     } else {
-      return <Signup></Signup>;
+      return <OnboardingPage />;
     }
   }
-  const userName = userObject.name ?? "User";
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full flex-row">
-        <UserSidebar user={{ name: userName }} />
+        <UserSidebar user={{ name: `${user.firstName} ${user.lastName}` }} />
         <SidebarTrigger />
         <main>{children}</main>
       </div>
