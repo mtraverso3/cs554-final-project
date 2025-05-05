@@ -2,10 +2,10 @@ import {
   Quiz,
   QuizSchema,
   QuizEntrySchema,
-  QuizEntry,
+  QuizEntry, Deck,
 } from "@/lib/db/data/schema";
 import { ObjectId } from "mongodb";
-import { quizzes } from "@/lib/db/config/mongoCollections";
+import {decks, quizzes} from "@/lib/db/config/mongoCollections";
 import { getUserById } from "@/lib/db/data/users";
 
 export async function createQuiz(
@@ -21,6 +21,7 @@ export async function createQuiz(
     name: name,
     description: description,
     ownerId: new ObjectId(ownerId),
+    createdAt: new Date(),
     questionsList: [],
   };
 
@@ -77,4 +78,26 @@ export async function addQuestionToQuiz(
   }
 
   return updatedQuiz.value as Quiz;
+}
+
+export async function getQuizzesByUserId(
+    userId: string,
+): Promise<Quiz[]> {
+  if (!ObjectId.isValid(userId)) {
+    throw new Error("Invalid ObjectId");
+  }
+
+  const quizCollection = await quizzes();
+  let quizList;
+  try {
+    quizList = await quizCollection
+        .find({ ownerId: new ObjectId(userId) })
+        .toArray();
+  } catch {
+    throw new Error("Failed to get quizzes");
+  }
+  if (!quizList) {
+    throw new Error("Decks not found");
+  }
+  return quizList;
 }

@@ -143,6 +143,9 @@ export const QuizInputSchema = Yup.object({
     .required("Description is required")
     .min(1, "Must be a non-empty string"),
   ownerId: Yup.mixed<ObjectId>().required("User is required"),
+  createdAt: Yup.date()
+      .required("CreatedAt is required")
+      .default(() => new Date()),
   questionsList: Yup.array()
     .of(QuizEntrySchema)
     .required("Questions are required")
@@ -160,6 +163,9 @@ export const QuizSchema = yup.object({
     .required("Description is required")
     .min(1, "Must be a non-empty string"),
   ownerId: Yup.mixed<ObjectId>().required("User is required"),
+  createdAt: Yup.date()
+      .required("CreatedAt is required")
+      .default(() => new Date()),
   questionsList: Yup.array()
     .of(QuizEntrySchema)
     .required("Questions are required")

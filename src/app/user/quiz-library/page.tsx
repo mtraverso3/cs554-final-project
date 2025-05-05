@@ -13,99 +13,100 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { getQuizzes } from "@/lib/quizForms";
+import { Quiz } from "@/lib/db/data/schema";
+import {getDecks} from "@/lib/deckForms";
 
-export type Quiz = {
-  id: string;
-  title: string;
-  description: string;
-  deckId: string;
-  flashcardCount: number;
-  createdAt: Date;
-};
 
-export type Deck = {
-  id: string;
-  name: string;
-  description: string;
-  flashcardCount: number;
-  createdAt: Date;
-};
+// export type Quiz = {
+//   id: string;
+//   name: string;
+//   description: string;
+//   questionsList: Object[];
+//   createdAt: Date;
+// };
 
-const generateDummyDecks = (): Deck[] => [
-  {
-    id: "hyrule-101",
-    name: "Hyrule 101",
-    description: "Basic knowledge about the land of Hyrule",
-    flashcardCount: 5,
-    createdAt: new Date("2025-03-10"),
-  },
-  {
-    id: "zelda-characters",
-    name: "Characters of Zelda",
-    description: "Important characters in the Legend of Zelda universe",
-    flashcardCount: 8,
-    createdAt: new Date("2025-03-15"),
-  },
-  {
-    id: "botw-specifics",
-    name: "Breath of the Wild",
-    description: "Specific content from Breath of the Wild",
-    flashcardCount: 6,
-    createdAt: new Date("2025-03-20"),
-  },
-];
+// export type Deck = {
+//   id: string;
+//   name: string;
+//   description: string;
+//   flashcardCount: number;
+//   createdAt: Date;
+// };
+//
+// const generateDummyDecks = (): Deck[] => [
+//   {
+//     id: "hyrule-101",
+//     name: "Hyrule 101",
+//     description: "Basic knowledge about the land of Hyrule",
+//     flashcardCount: 5,
+//     createdAt: new Date("2025-03-10"),
+//   },
+//   {
+//     id: "zelda-characters",
+//     name: "Characters of Zelda",
+//     description: "Important characters in the Legend of Zelda universe",
+//     flashcardCount: 8,
+//     createdAt: new Date("2025-03-15"),
+//   },
+//   {
+//     id: "botw-specifics",
+//     name: "Breath of the Wild",
+//     description: "Specific content from Breath of the Wild",
+//     flashcardCount: 6,
+//     createdAt: new Date("2025-03-20"),
+//   },
+// ];
 
-const generateDummyQuizzes = (): Quiz[] => [
-  {
-    id: "1",
-    title: "Hero's Journey 101",
-    description: "Test your knowledge of Hyrule, Link, and the legendary lore.",
-    deckId: "hyrule-101",
-    flashcardCount: 5,
-    createdAt: new Date("2025-03-15"),
-  },
-  {
-    id: "2",
-    title: "Breath of the Wild Brain Teasers",
-    description: "A quiz dedicated to the wildest adventures of Link in BOTW.",
-    deckId: "botw-specifics",
-    flashcardCount: 6,
-    createdAt: new Date("2025-03-23"),
-  },
-  {
-    id: "3",
-    title: "Divine Beasts & Ancient Tech",
-    description:
-      "Do you know your way around the Sheikah inventions and beasts?",
-    deckId: "botw-specifics",
-    flashcardCount: 4,
-    createdAt: new Date("2025-04-02"),
-  },
-  {
-    id: "4",
-    title: "Zelda Characters Quiz",
-    description:
-      "Test your knowledge about the most important characters in Hyrule.",
-    deckId: "zelda-characters",
-    flashcardCount: 6,
-    createdAt: new Date("2025-04-05"),
-  },
-];
+// const generateDummyQuizzes = (): Quiz[] => [
+//   {
+//     _id: "1",
+//     name: "Hero's Journey 101",
+//     description: "Test your knowledge of Hyrule, Link, and the legendary lore.",
+//     questionsList: [{question: "test question" ,answers: [{answer: "what up", isCorrect: true}]}],
+//     createdAt: new Date("2025-03-15"),
+//   },
+//   {
+//     id: "2",
+//     name: "Breath of the Wild Brain Teasers",
+//     description: "A quiz dedicated to the wildest adventures of Link in BOTW.",
+//     questionsList: [{answer: "what up", correct: true}],
+//     createdAt: new Date("2025-03-23"),
+//   },
+//   {
+//     id: "3",
+//     name: "Divine Beasts & Ancient Tech",
+//     description:
+//       "Do you know your way around the Sheikah inventions and beasts?",
+//     questionsList: [{answer: "what up", correct: true}],
+//     createdAt: new Date("2025-04-02"),
+//   },
+//   {
+//     id: "4",
+//     name: "Zelda Characters Quiz",
+//     description:
+//       "Test your knowledge about the most important characters in Hyrule.",
+//     questionsList: [{answer: "what up", correct: true}],
+//     createdAt: new Date("2025-04-05"),
+//   },
+// ];
 
 export default function QuizLibrary() {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [filteredQuizzes, setFilteredQuizzes] = useState<Quiz[]>([]);
-  const [decks, setDecks] = useState<Deck[]>([]);
+  //const [decks, setDecks] = useState<Deck[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
+  //const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   useEffect(() => {
-    const dummyQuizzes = generateDummyQuizzes();
-    const dummyDecks = generateDummyDecks();
-    setQuizzes(dummyQuizzes);
-    setFilteredQuizzes(dummyQuizzes);
-    setDecks(dummyDecks);
+    getQuizzes().then(
+        (quiz) => {
+          const parsedData = JSON.parse(quiz);
+          setQuizzes(parsedData);
+          setFilteredQuizzes(parsedData);
+        }
+    );
   }, []);
 
   useEffect(() => {
@@ -115,14 +116,14 @@ export default function QuizLibrary() {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
         (quiz) =>
-          quiz.title.toLowerCase().includes(query) ||
+          quiz.name.toLowerCase().includes(query) ||
           quiz.description.toLowerCase().includes(query),
       );
     }
 
-    if (selectedDeck) {
-      filtered = filtered.filter((quiz) => quiz.deckId === selectedDeck);
-    }
+    // if (selectedDeck) {
+    //   filtered = filtered.filter((quiz) => quiz.deckId === selectedDeck);
+    // }
 
     filtered.sort((a, b) =>
       sortOrder === "asc"
@@ -131,16 +132,16 @@ export default function QuizLibrary() {
     );
 
     setFilteredQuizzes(filtered);
-  }, [searchQuery, selectedDeck, sortOrder, quizzes]);
+  }, [searchQuery, sortOrder, quizzes]);
 
   const toggleSortOrder = () => {
     setSortOrder(sortOrder === "asc" ? "desc" : "asc");
   };
 
-  const getDeckName = (deckId: string) => {
-    const deck = decks.find((d) => d.id === deckId);
-    return deck ? deck.name : "Unknown Deck";
-  };
+  // const getDeckName = (deckId: string) => {
+  //   const deck = decks.find((d) => d.id === deckId);
+  //   return deck ? deck.name : "Unknown Deck";
+  // };
 
   return (
     <div className="container mx-auto py-8 px-6">
@@ -171,18 +172,18 @@ export default function QuizLibrary() {
 
         <div className="flex gap-2">
           <div className="relative">
-            <select
-              className="h-9 rounded-md border bg-background px-3 py-1 text-sm appearance-none pr-8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              value={selectedDeck || ""}
-              onChange={(e) => setSelectedDeck(e.target.value || null)}
-            >
-              <option value="">All Decks</option>
-              {decks.map((deck) => (
-                <option key={deck.id} value={deck.id}>
-                  {deck.name}
-                </option>
-              ))}
-            </select>
+            {/*<select*/}
+            {/*  className="h-9 rounded-md border bg-background px-3 py-1 text-sm appearance-none pr-8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"*/}
+            {/*  value={selectedDeck || ""}*/}
+            {/*  onChange={(e) => setSelectedDeck(e.target.value || null)}*/}
+            {/*>*/}
+            {/*  <option value="">All Decks</option>*/}
+            {/*  {decks.map((deck) => (*/}
+            {/*    <option key={deck.id} value={deck.id}>*/}
+            {/*      {deck.name}*/}
+            {/*    </option>*/}
+            {/*  ))}*/}
+            {/*</select>*/}
             <FilterIcon
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
               size={14}
@@ -203,11 +204,11 @@ export default function QuizLibrary() {
       {filteredQuizzes.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredQuizzes.map((quiz) => (
-            <Card key={quiz.id} className="h-full">
+            <Card key={quiz._id.toString()} className="h-full">
               <CardHeader className="pb-2">
-                <CardTitle className="line-clamp-1">{quiz.title}</CardTitle>
+                <CardTitle className="line-clamp-1">{quiz.name}</CardTitle>
                 <CardDescription>
-                  {quiz.flashcardCount} cards • {getDeckName(quiz.deckId)}
+                  {quiz.questionsList.length} question(s)
                 </CardDescription>
               </CardHeader>
 
@@ -216,19 +217,19 @@ export default function QuizLibrary() {
                   {quiz.description}
                 </p>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Created on {quiz.createdAt.toLocaleDateString()}
+                  Created on {new Date(quiz.createdAt).toLocaleDateString()}
                 </p>
               </CardContent>
 
               <CardFooter className="flex justify-between pt-2">
                 <Button variant="default" size="sm" asChild>
-                  <Link href={`/user/quiz-library/${quiz.id}/study`}>
+                  <Link href={`/user/quiz-library/${quiz._id}/study`}>
                     Study
                   </Link>
                 </Button>
                 <div className="space-x-2">
                   <Button variant="ghost" size="sm" asChild>
-                    <Link href={`/user/quiz-library/${quiz.id}/edit`}>
+                    <Link href={`/user/quiz-library/${quiz._id}/edit`}>
                       Edit
                     </Link>
                   </Button>
@@ -258,22 +259,22 @@ export default function QuizLibrary() {
           <div className="text-center">
             <h3 className="text-lg font-medium mb-2">No quizzes found</h3>
             <p className="text-muted-foreground mb-6">
-              {searchQuery || selectedDeck
+              {searchQuery
                 ? "Try adjusting your search or filters"
                 : "Create your first quiz to get started"}
             </p>
             <div className="flex gap-4 justify-center">
-              {(searchQuery || selectedDeck) && (
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setSearchQuery("");
-                    setSelectedDeck(null);
-                  }}
-                >
-                  Clear Filters
-                </Button>
-              )}
+              {/*{(searchQuery || selectedDeck) && (*/}
+              {/*  <Button*/}
+              {/*    variant="outline"*/}
+              {/*    onClick={() => {*/}
+              {/*      setSearchQuery("");*/}
+              {/*      setSelectedDeck(null);*/}
+              {/*    }}*/}
+              {/*  >*/}
+              {/*    Clear Filters*/}
+              {/*  </Button>*/}
+              {/*)}*/}
               <Button asChild>
                 <Link href="/user/quiz-library/create">
                   <PlusIcon className="mr-2" />
