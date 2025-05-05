@@ -16,6 +16,9 @@ export const DeckInputSchema = Yup.object({
   flashcardList: Yup.array()
     .of(Yup.mixed<ObjectId>().required())
     .required("Flashcards must be an array"),
+  createdAt: Yup.date()
+    .required("CreatedAt is required")
+    .default(() => new Date()),
 });
 
 export const DeckSchema = yup.object({
@@ -32,6 +35,9 @@ export const DeckSchema = yup.object({
   flashcardList: Yup.array()
     .of(Yup.mixed<ObjectId>().required())
     .required("Flashcards must be an array"),
+  createdAt: Yup.date()
+    .required("CreatedAt is required")
+    .default(() => new Date()),
 });
 export type DeckInput = Yup.InferType<typeof DeckInputSchema>;
 export type Deck = Yup.InferType<typeof DeckSchema>;

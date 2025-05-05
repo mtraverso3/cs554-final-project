@@ -17,6 +17,7 @@ export async function createDeck(
     description: description,
     ownerId: new ObjectId(userId),
     flashcardList: [],
+    createdAt: new Date(),
   };
 
   newDeck = await DeckSchema.validate(newDeck);
@@ -47,4 +48,26 @@ export async function getDeckById(id: string): Promise<Deck> {
     throw new Error("Deck not found");
   }
   return deck;
+}
+
+export async function getDecksByUserId(
+  userId: string,
+): Promise<Deck[]> {
+  if (!ObjectId.isValid(userId)) {
+    throw new Error("Invalid ObjectId");
+  }
+
+  const deckCollection = await decks();
+  let decksList;
+  try {
+    decksList = await deckCollection
+      .find({ ownerId: new ObjectId(userId) })
+      .toArray();
+  } catch {
+    throw new Error("Failed to get decks");
+  }
+  if (!decksList) {
+    throw new Error("Decks not found");
+  }
+  return decksList;
 }

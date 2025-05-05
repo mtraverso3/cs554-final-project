@@ -16,11 +16,12 @@ export async function Layout({ children }: { children: React.ReactNode }) {
   const userObject = session?.user;
 
   // Ensure the user has been onboarded
-  let user: User = await users.getUserBySub(userObject?.sub);
-  if (!user) {
+  let user: User;
+  try {
+    user = await users.getUserBySub(userObject?.sub);
+  } catch {
     if (userObject.given_name && userObject.family_name) {
-      await signup(userObject.given_name, userObject.family_name);
-      user = await users.getUserBySub(userObject?.sub);
+      user = await signup(userObject.given_name, userObject.family_name);
     } else {
       return <OnboardingPage />;
     }
