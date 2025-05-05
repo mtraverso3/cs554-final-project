@@ -149,7 +149,6 @@ export const QuizInputSchema = Yup.object({
   questionsList: Yup.array()
     .of(QuizEntrySchema)
     .required("Questions are required")
-    .min(1, "Must have at least one question"),
 });
 
 export const QuizSchema = yup.object({
@@ -169,7 +168,6 @@ export const QuizSchema = yup.object({
   questionsList: Yup.array()
     .of(QuizEntrySchema)
     .required("Questions are required")
-    .min(1, "Must have at least one question"),
 });
 export type QuizInput = Yup.InferType<typeof QuizInputSchema>;
 export type Quiz = InferType<typeof QuizSchema>;
