@@ -38,6 +38,11 @@ export async function addDeck(name: string, description: string) {
 
   await decks.createDeck(name, description, userObject._id.toString());
 }
+export async function addQuiz(name: string, description: string) {
+  const userObject: User = await authenticateUser();
+
+  await quizzes.createQuiz(name, description, userObject._id.toString());
+}
 
 export async function getQuizzes(): Promise<string> {
   const userObject: User = await authenticateUser();
