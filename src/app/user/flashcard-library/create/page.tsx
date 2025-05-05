@@ -1,17 +1,25 @@
 "use client"
 import {useState} from "react";
 import { addDeck } from '@/lib/quizForms';
+
+//TODO: this needs to be reformatted
+
+type Card = {
+    front: string;
+    back: string;
+}
+
 export default function CreateDeck() {
     const [deck, setDeck] = useState({});
-    const [cards, setCards] = useState([] as any);
+    const [cards, setCards] = useState([] as Card[]);
     const [name, setName] = useState("");
     const [id, setId] = useState("");
     const [description, setDescription] = useState("");
     const [front, setFront] = useState("");
     const [back, setBack] = useState("");
     const addCard = () => {
-        const newCard = {front: front, back: back};
-        setCards([...cards, newCard]);
+        const newCard: Card = {front: front, back: back};
+      setCards([...cards, newCard]);
     }
     if(Object.keys(deck).length == 0) {
         return <div>
@@ -29,7 +37,7 @@ export default function CreateDeck() {
     else {
         return <div>
         <button className="bg-black text-white outline-1 outline-gray-200 rounded p-2"
-                onClick={() => addDeck(deck, cards)}>Finish Deck
+                onClick={() => addDeck(name, description)}>Finish Deck
         </button><br></br>
         Add Card to Deck: <br></br>
         Front: <input  className="outline-1" type="text" onChange={(e) =>
@@ -41,8 +49,8 @@ export default function CreateDeck() {
         </button>
         Cards: <br></br>
         <div>
-            {cards.map(function(card: any) {
-                return (<div key = {card.front}>
+            {cards.map(function(card: Card) {
+              return (<div key = {card.front}>
                     <p>Front: {card.front}</p>
                     <p>Back: {card.back}</p><br></br>
                 </div>);

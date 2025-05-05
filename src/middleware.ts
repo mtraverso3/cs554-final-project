@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { auth0 } from "./lib/auth0";
+import { auth0 } from "@/lib/auth/auth-safe";
 
 // import { The_Nautigal } from "next/font/google";
 
@@ -11,7 +11,7 @@ export async function middleware(request: NextRequest) {
   if (request.nextUrl.pathname.startsWith("/auth")) {
     return authResponse;
   }
-  // const session = await auth0.getSession();
+  // const session = await authSafe.getSession();
   return NextResponse.next();
 }
 

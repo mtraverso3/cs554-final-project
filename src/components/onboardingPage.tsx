@@ -3,7 +3,7 @@
 import { signup } from '@/lib/quizForms'
 import {useState} from "react";
 
-export function Signup() {
+export function OnboardingPage() {
     const [first, setFirst] = useState('');
     const [last, setLast] = useState('');
     return (

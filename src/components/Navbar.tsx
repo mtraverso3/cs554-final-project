@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { auth0 } from "@/lib/auth0";
+import { auth0 } from "@/lib/auth/auth";
 import Link from "next/link";
 
 export async function Navbar() {

@@ -1,5 +1,5 @@
 "use server";
-import { auth0 } from "@/lib/auth0";
+import { auth0 } from "@/lib/auth/auth";
 import { Navbar } from "@/components/Navbar";
 
 export default async function HomePage() {
