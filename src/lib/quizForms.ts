@@ -9,7 +9,7 @@ export async function createFlashcard(front: string, back: string) {
   console.log(front, back);
 }
 
-export async function signup(first: string, last: string) {
+export async function signup(first: string, last: string): Promise<User> {
   const session = await auth0.getSession();
 
   const userObject = session?.user;
@@ -28,6 +28,8 @@ export async function signup(first: string, last: string) {
   console.log(
     `User "${user.firstName} ${user.lastName}" created successfully.`,
   );
+
+  return user;
 }
 
 export async function addDeck(name: string, description: string) {

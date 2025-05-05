@@ -13,73 +13,76 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { getDecks } from "@/lib/deckForms";
+import { Deck } from "@/lib/db/data/schema";
 
-export type Deck = {
-  id: string;
-  title: string;
-  description: string;
-  flashcardCount: number;
-  createdAt: Date;
-};
+// export type Deck = {
+//   _id: string;
+//   name: string;
+//   description: string;
+//   flashcardList: string[]
+//   createdAt: Date;
+// };
 
-const generateDummyDecks = (): Deck[] => [
-  {
-    id: "1",
-    title: "Legend of Zelda Basics",
-    description: "Core knowledge about Hyrule and its heroes",
-    flashcardCount: 4,
-    createdAt: new Date("2025-03-15"),
-  },
-  {
-    id: "2",
-    title: "Items and Artifacts",
-    description: "Important items from across the Zelda universe",
-    flashcardCount: 3,
-    createdAt: new Date("2025-03-20"),
-  },
-  {
-    id: "3",
-    title: "Characters and Creatures",
-    description: "Friends and foes from the world of Zelda",
-    flashcardCount: 6,
-    createdAt: new Date("2025-03-25"),
-  },
-  {
-    id: "4",
-    title: "Locations and Landmarks",
-    description: "Key places in the Zelda universe",
-    flashcardCount: 5,
-    createdAt: new Date("2025-03-28"),
-  },
-  {
-    id: "5",
-    title: "Game Mechanics",
-    description: "How gameplay works across different Zelda titles",
-    flashcardCount: 7,
-    createdAt: new Date("2025-04-02"),
-  },
-  {
-    id: "6",
-    title: "Timeline and Lore",
-    description: "The complex timeline and mythology of the Zelda universe",
-    flashcardCount: 9,
-    createdAt: new Date("2025-04-05"),
-  },
-  {
-    id: "7",
-    title: "Music and Sounds",
-    description: "Memorable tunes and audio from the series",
-    flashcardCount: 4,
-    createdAt: new Date("2025-04-08"),
-  },
-  {
-    id: "8",
-    title: "Breath of the Wild Specifics",
-    description: "Details unique to Breath of the Wild",
-    flashcardCount: 8,
-    createdAt: new Date("2025-04-10"),
-  },
-];
+// const generateDummyDecks = (): Deck[] => [
+//   {
+//     id: "1",
+//     name: "Legend of Zelda Basics",
+//     description: "Core knowledge about Hyrule and its heroes",
+//     flashcardList: [ "a", "b" ],
+//     createdAt: new Date("2025-03-15"),
+//   },
+//   {
+//     id: "2",
+//     name: "Items and Artifacts",
+//     description: "Important items from across the Zelda universe",
+//     flashcardList: [ "a", "b" ],
+//     createdAt: new Date("2025-03-20"),
+//   },
+//   {
+//     id: "3",
+//     name: "Characters and Creatures",
+//     description: "Friends and foes from the world of Zelda",
+//     flashcardList: [ "a", "b" ],
+//     createdAt: new Date("2025-03-25"),
+//   },
+//   {
+//     id: "4",
+//     name: "Locations and Landmarks",
+//     description: "Key places in the Zelda universe",
+//     flashcardList: [ "a", "b" ],
+//     createdAt: new Date("2025-03-28"),
+//   },
+//   {
+//     id: "5",
+//     name: "Game Mechanics",
+//     description: "How gameplay works across different Zelda titles",
+//     flashcardList: [ "a", "b" ],
+//     createdAt: new Date("2025-04-02"),
+//   },
+//   {
+//     id: "6",
+//     name: "Timeline and Lore",
+//     description: "The complex timeline and mythology of the Zelda universe",
+//     flashcardList: [ "a", "b" ],
+//     createdAt: new Date("2025-04-05"),
+//   },
+//   {
+//     id: "7",
+//     name: "Music and Sounds",
+//     description: "Memorable tunes and audio from the series",
+//     flashcardList: [ "a", "b" ],
+//     createdAt: new Date("2025-04-08"),
+//   },
+//   {
+//     id: "8",
+//     name: "Breath of the Wild Specifics",
+//     description: "Details unique to Breath of the Wild",
+//     flashcardList: [ "a", "b" ],
+//     createdAt: new Date("2025-04-10"),
+//   },
+// ];
+
 
 export default function FlashcardLibrary() {
   const [decks, setDecks] = useState<Deck[]>([]);
@@ -88,9 +91,13 @@ export default function FlashcardLibrary() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   useEffect(() => {
-    const dummyData = generateDummyDecks();
-    setDecks(dummyData);
-    setFilteredDecks(dummyData);
+    getDecks().then(
+      (data) => {
+        const parsedData = JSON.parse(data);
+        setDecks(parsedData);
+        setFilteredDecks(parsedData);
+      }
+    );
   }, []);
 
   useEffect(() => {
@@ -100,7 +107,7 @@ export default function FlashcardLibrary() {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
         (deck) =>
-          deck.title.toLowerCase().includes(query) ||
+          deck.name.toLowerCase().includes(query) ||
           deck.description.toLowerCase().includes(query)
       );
     }
@@ -159,11 +166,11 @@ export default function FlashcardLibrary() {
       {filteredDecks.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredDecks.map((deck) => (
-            <Card key={deck.id} className="h-full">
+            <Card key={deck._id.toString()} className="h-full">
               <CardHeader className="pb-2">
-                <CardTitle className="line-clamp-1">{deck.title}</CardTitle>
+                <CardTitle className="line-clamp-1">{deck.name}</CardTitle>
                 <CardDescription>
-                  {deck.flashcardCount} flashcards • Created on {deck.createdAt.toLocaleDateString()}
+                  {deck.flashcardList.length} flashcards • Created on {new Date(deck.createdAt).toLocaleDateString()}
                 </CardDescription>
               </CardHeader>
 
@@ -173,11 +180,11 @@ export default function FlashcardLibrary() {
 
               <CardFooter className="flex justify-between pt-2">
                 <Button variant="outline" size="sm" asChild>
-                  <Link href={`/user/flashcard-library/${deck.id}`}>View</Link>
+                  <Link href={`/user/flashcard-library/${deck._id}`}>View</Link>
                 </Button>
                 <div className="space-x-2">
                   <Button variant="ghost" size="sm" asChild>
-                    <Link href={`/user/flashcard-library/${deck.id}/edit`}>Edit</Link>
+                    <Link href={`/user/flashcard-library/${deck._id}/edit`}>Edit</Link>
                   </Button>
                   <Button variant="ghost" size="sm">
                     Delete

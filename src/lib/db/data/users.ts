@@ -8,8 +8,10 @@ export async function createUser(
   firstName: string,
   lastName: string,
 ): Promise<User> {
-  const userExists: User = await getUserBySub(sub);
-  if (userExists) {
+
+  const userCollection = await users();
+  const existingUser = await userCollection.findOne({ sub: sub.trim() });
+  if (existingUser) {
     throw new Error("User already exists");
   }
 
@@ -22,7 +24,6 @@ export async function createUser(
   };
   newUser = await UserSchema.validate(newUser);
 
-  const userCollection = await users();
   const insertInfo = await userCollection.insertOne(newUser);
   if (!insertInfo.acknowledged || !insertInfo.insertedId) {
     throw new Error("Error inserting new user");
@@ -52,7 +53,7 @@ export async function getUserBySub(sub: string): Promise<User> {
   const userCollection = await users();
   const foundUser = await userCollection.findOne({ sub: sub.trim() });
   if (!foundUser) {
-    throw new Error("User not found");
+    throw new Error("User not found", { cause: "NO_USER" });
   }
   return foundUser;
 }
