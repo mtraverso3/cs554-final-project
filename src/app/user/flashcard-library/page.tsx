@@ -16,73 +16,6 @@ import { Input } from "@/components/ui/input";
 import { getDecks } from "@/lib/deckForms";
 import { Deck } from "@/lib/db/data/schema";
 
-// export type Deck = {
-//   _id: string;
-//   name: string;
-//   description: string;
-//   flashcardList: string[]
-//   createdAt: Date;
-// };
-
-// const generateDummyDecks = (): Deck[] => [
-//   {
-//     id: "1",
-//     name: "Legend of Zelda Basics",
-//     description: "Core knowledge about Hyrule and its heroes",
-//     flashcardList: [ "a", "b" ],
-//     createdAt: new Date("2025-03-15"),
-//   },
-//   {
-//     id: "2",
-//     name: "Items and Artifacts",
-//     description: "Important items from across the Zelda universe",
-//     flashcardList: [ "a", "b" ],
-//     createdAt: new Date("2025-03-20"),
-//   },
-//   {
-//     id: "3",
-//     name: "Characters and Creatures",
-//     description: "Friends and foes from the world of Zelda",
-//     flashcardList: [ "a", "b" ],
-//     createdAt: new Date("2025-03-25"),
-//   },
-//   {
-//     id: "4",
-//     name: "Locations and Landmarks",
-//     description: "Key places in the Zelda universe",
-//     flashcardList: [ "a", "b" ],
-//     createdAt: new Date("2025-03-28"),
-//   },
-//   {
-//     id: "5",
-//     name: "Game Mechanics",
-//     description: "How gameplay works across different Zelda titles",
-//     flashcardList: [ "a", "b" ],
-//     createdAt: new Date("2025-04-02"),
-//   },
-//   {
-//     id: "6",
-//     name: "Timeline and Lore",
-//     description: "The complex timeline and mythology of the Zelda universe",
-//     flashcardList: [ "a", "b" ],
-//     createdAt: new Date("2025-04-05"),
-//   },
-//   {
-//     id: "7",
-//     name: "Music and Sounds",
-//     description: "Memorable tunes and audio from the series",
-//     flashcardList: [ "a", "b" ],
-//     createdAt: new Date("2025-04-08"),
-//   },
-//   {
-//     id: "8",
-//     name: "Breath of the Wild Specifics",
-//     description: "Details unique to Breath of the Wild",
-//     flashcardList: [ "a", "b" ],
-//     createdAt: new Date("2025-04-10"),
-//   },
-// ];
-
 
 export default function FlashcardLibrary() {
   const [decks, setDecks] = useState<Deck[]>([]);
@@ -94,6 +27,9 @@ export default function FlashcardLibrary() {
     getDecks().then(
       (data) => {
         const parsedData = JSON.parse(data);
+        parsedData.forEach((deck: Deck) => {
+          deck.createdAt = new Date(deck.createdAt);
+        });
         setDecks(parsedData);
         setFilteredDecks(parsedData);
       }
@@ -170,7 +106,7 @@ export default function FlashcardLibrary() {
               <CardHeader className="pb-2">
                 <CardTitle className="line-clamp-1">{deck.name}</CardTitle>
                 <CardDescription>
-                  {deck.flashcardList.length} flashcards • Created on {new Date(deck.createdAt).toLocaleDateString()}
+                  {deck.flashcardList.length} flashcards • Created on {deck.createdAt.toLocaleDateString()}
                 </CardDescription>
               </CardHeader>
 

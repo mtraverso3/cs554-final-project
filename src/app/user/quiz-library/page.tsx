@@ -103,6 +103,9 @@ export default function QuizLibrary() {
     getQuizzes().then(
         (quiz) => {
           const parsedData = JSON.parse(quiz);
+          parsedData.forEach((quiz: Quiz) => {
+            quiz.createdAt = new Date(quiz.createdAt);
+          });
           setQuizzes(parsedData);
           setFilteredQuizzes(parsedData);
         }
@@ -217,7 +220,7 @@ export default function QuizLibrary() {
                   {quiz.description}
                 </p>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Created on {new Date(quiz.createdAt).toLocaleDateString()}
+                  Created on {quiz.createdAt.toLocaleDateString()}
                 </p>
               </CardContent>
 
