@@ -8,19 +8,14 @@ export async function createDeck(
   description: string,
   userId: string,
 ): Promise<Deck> {
-  let user;
-  try {
-    user = await getUserById(userId);
-  } catch {
-    throw new Error("User not found");
-  }
+  await getUserById(userId);
 
 
   let newDeck: Deck = {
     _id: new ObjectId(),
     name: name,
     description: description,
-    ownerId: user._id,
+    ownerId: new ObjectId(userId),
     flashcardList: [],
   };
 

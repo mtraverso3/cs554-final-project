@@ -101,3 +101,63 @@ export const UserSchema = yup.object({
 });
 export type UserInput = Yup.InferType<typeof UserInputSchema>;
 export type User = InferType<typeof UserSchema>;
+
+export const QuizEntrySchema = Yup.object({
+
+  question: Yup.string()
+    .trim()
+    .required("Question is required")
+    .min(1, "Must be a non-empty string"),
+  answers: Yup.array()
+    .of(
+      Yup.object({
+        answer: Yup.string()
+          .trim()
+          .required("Answer is required")
+          .min(1, "Must be a non-empty string"),
+        isCorrect: Yup.boolean().required("isCorrect is required"),
+      }),
+    )
+    .required("Answers are required")
+    .min(1, "Must have at least one answer")
+    .test("correctAnswer", "Must have one correct answer", (answers) => {
+      const correctAnswers = answers.filter((answer) => answer.isCorrect);
+      return correctAnswers.length > 0;
+    }),
+});
+export type QuizEntry = Yup.InferType<typeof QuizEntrySchema>;
+
+export const QuizInputSchema = Yup.object({
+  name: Yup.string()
+    .trim()
+    .required("Name is required")
+    .min(1, "Must be a non-empty string"),
+  description: Yup.string()
+    .trim()
+    .required("Description is required")
+    .min(1, "Must be a non-empty string"),
+  ownerId: Yup.mixed<ObjectId>().required("User is required"),
+  questionsList: Yup.array()
+    .of(QuizEntrySchema)
+    .required("Questions are required")
+    .min(1, "Must have at least one question"),
+});
+
+export const QuizSchema = yup.object({
+  _id: yup.mixed<ObjectId>().required(),
+  name: Yup.string()
+    .trim()
+    .required("Name is required")
+    .min(1, "Must be a non-empty string"),
+  description: Yup.string()
+    .trim()
+    .required("Description is required")
+    .min(1, "Must be a non-empty string"),
+  ownerId: Yup.mixed<ObjectId>().required("User is required"),
+  questionsList: Yup.array()
+    .of(QuizEntrySchema)
+    .required("Questions are required")
+    .min(1, "Must have at least one question"),
+});
+export type QuizInput = Yup.InferType<typeof QuizInputSchema>;
+export type Quiz = InferType<typeof QuizSchema>;
