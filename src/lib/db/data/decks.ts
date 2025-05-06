@@ -6,7 +6,9 @@ import { Deck, DeckSchema } from "./schema";
 export async function createDeck(
   name: string,
   description: string,
+  category: string,
   userId: string,
+
 ): Promise<Deck> {
   await getUserById(userId);
 
@@ -18,6 +20,8 @@ export async function createDeck(
     ownerId: new ObjectId(userId),
     flashcardList: [],
     createdAt: new Date(),
+    lastStudied: new Date(),
+    category: category,
   };
 
   newDeck = await DeckSchema.validate(newDeck);

@@ -2,15 +2,16 @@ import {
   Quiz,
   QuizSchema,
   QuizEntrySchema,
-  QuizEntry, Deck,
+  QuizEntry,
 } from "@/lib/db/data/schema";
 import { ObjectId } from "mongodb";
-import {decks, quizzes} from "@/lib/db/config/mongoCollections";
+import {quizzes} from "@/lib/db/config/mongoCollections";
 import { getUserById } from "@/lib/db/data/users";
 
 export async function createQuiz(
   name: string,
   description: string,
+  category: string,
   ownerId: string,
 ): Promise<Quiz> {
   // Check if the owner exists
@@ -22,6 +23,8 @@ export async function createQuiz(
     description: description,
     ownerId: new ObjectId(ownerId),
     createdAt: new Date(),
+    lastStudied: new Date(),
+    category: category,
     questionsList: [],
   };
 

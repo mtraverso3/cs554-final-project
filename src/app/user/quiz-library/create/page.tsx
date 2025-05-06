@@ -5,12 +5,15 @@ import { addQuiz } from "@/lib/quizForms";
 interface QuizForm {
     name: string;
     description: string;
+    category: string;
 }
 
 export default function CreateQuiz() {
     const [quizInfo, setQuizInfo] = useState<QuizForm>({
         name: "",
         description: "",
+        category: "",
+
     });
 
     const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -20,7 +23,7 @@ export default function CreateQuiz() {
 
     const finishQuiz = async () => {
         try {
-            await addQuiz(quizInfo.name, quizInfo.description);
+            await addQuiz(quizInfo.name, quizInfo.description, quizInfo.category);
             alert("Quiz created successfully");
         } catch (error) {
             console.error(error);
@@ -50,6 +53,16 @@ export default function CreateQuiz() {
                     className="mt-1 w-full outline-1"
                 />
             </label>
+          <label className="block">
+            Category:
+            <input
+              name="category"
+              type="text"
+              value={quizInfo.category}
+              onChange={handleInputChange}
+              className="mt-1 w-full outline-1"
+            />
+          </label>
             <button
                 onClick={() => finishQuiz()}
                 className="bg-black text-white rounded p-2"

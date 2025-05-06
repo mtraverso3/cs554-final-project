@@ -3,7 +3,7 @@
 import { authenticateUser, auth0 } from "@/lib/auth/auth";
 import * as users from "@/lib/db/data/users";
 import * as decks from "@/lib/db/data/decks";
-import {Deck, Quiz, User} from "@/lib/db/data/schema";
+import { Quiz, User } from "@/lib/db/data/schema";
 import * as quizzes from "@/lib/db/data/quizzes";
 
 export async function createFlashcard(front: string, back: string) {
@@ -33,15 +33,30 @@ export async function signup(first: string, last: string): Promise<User> {
   return user;
 }
 
-export async function addDeck(name: string, description: string) {
+export async function addDeck(
+  name: string,
+  description: string,
+  category: string,
+) {
   const userObject: User = await authenticateUser();
 
-  await decks.createDeck(name, description, userObject._id.toString());
+  await decks.createDeck(
+    name,
+    description,
+    category,
+    userObject._id.toString(),
+  );
 }
-export async function addQuiz(name: string, description: string) {
+
+export async function addQuiz(name: string, description: string, category: string) {
   const userObject: User = await authenticateUser();
 
-  await quizzes.createQuiz(name, description, userObject._id.toString());
+  await quizzes.createQuiz(
+    name,
+    description,
+    category,
+    userObject._id.toString(),
+  );
 }
 
 export async function getQuizzes(): Promise<string> {
@@ -50,5 +65,4 @@ export async function getQuizzes(): Promise<string> {
 
   const quizList: Quiz[] = await quizzes.getQuizzesByUserId(userId);
   return JSON.stringify(quizList);
-
 }

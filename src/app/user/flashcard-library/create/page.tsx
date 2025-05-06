@@ -5,12 +5,14 @@ import { addDeck } from "@/lib/quizForms";
 interface DeckForm {
   name: string;
   description: string;
+  category: string;
 }
 
 export default function CreateDeck() {
   const [deckInfo, setDeckInfo] = useState<DeckForm>({
     name: "",
     description: "",
+    category: "",
   });
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -20,7 +22,7 @@ export default function CreateDeck() {
 
   const finishDeck = async () => {
     try {
-      await addDeck(deckInfo.name, deckInfo.description);
+      await addDeck(deckInfo.name, deckInfo.description, deckInfo.category);
       alert("Deck created successfully");
     } catch (error) {
       console.error(error);
@@ -46,6 +48,16 @@ export default function CreateDeck() {
           name="description"
           type="text"
           value={deckInfo.description}
+          onChange={handleInputChange}
+          className="mt-1 w-full outline-1"
+        />
+      </label>
+      <label className="block">
+        Category:
+        <input
+          name="category"
+          type="text"
+          value={deckInfo.category}
           onChange={handleInputChange}
           className="mt-1 w-full outline-1"
         />

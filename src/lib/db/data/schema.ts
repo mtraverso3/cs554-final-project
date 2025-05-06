@@ -19,6 +19,13 @@ export const DeckInputSchema = Yup.object({
   createdAt: Yup.date()
     .required("CreatedAt is required")
     .default(() => new Date()),
+  lastStudied: Yup.date()
+    .required("lastStudied is required")
+    .default(() => new Date()),
+  category: Yup.string()
+    .trim()
+    .required("Category is required")
+    .min(1, "Must be a non-empty string"),
 });
 
 export const DeckSchema = yup.object({
@@ -38,6 +45,13 @@ export const DeckSchema = yup.object({
   createdAt: Yup.date()
     .required("CreatedAt is required")
     .default(() => new Date()),
+  lastStudied: Yup.date()
+    .required("lastStudied is required")
+    .default(() => new Date()),
+  category: Yup.string()
+    .trim()
+    .required("Category is required")
+    .min(1, "Must be a non-empty string"),
 });
 export type DeckInput = Yup.InferType<typeof DeckInputSchema>;
 export type Deck = Yup.InferType<typeof DeckSchema>;
@@ -146,9 +160,16 @@ export const QuizInputSchema = Yup.object({
   createdAt: Yup.date()
       .required("CreatedAt is required")
       .default(() => new Date()),
+  lastStudied: Yup.date()
+    .required("lastStudied is required")
+    .default(() => new Date()),
   questionsList: Yup.array()
     .of(QuizEntrySchema)
-    .required("Questions are required")
+    .required("Questions are required"),
+  category: Yup.string()
+    .trim()
+    .required("Category is required")
+    .min(1, "Must be a non-empty string"),
 });
 
 export const QuizSchema = yup.object({
@@ -165,9 +186,16 @@ export const QuizSchema = yup.object({
   createdAt: Yup.date()
       .required("CreatedAt is required")
       .default(() => new Date()),
+  lastStudied: Yup.date()
+    .required("lastStudied is required")
+    .default(() => new Date()),
   questionsList: Yup.array()
     .of(QuizEntrySchema)
-    .required("Questions are required")
+    .required("Questions are required"),
+  category: Yup.string()
+    .trim()
+    .required("Category is required")
+    .min(1, "Must be a non-empty string"),
 });
 export type QuizInput = Yup.InferType<typeof QuizInputSchema>;
 export type Quiz = InferType<typeof QuizSchema>;
