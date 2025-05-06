@@ -1,6 +1,7 @@
 "use client";
 import { ChangeEvent, useState } from "react";
 import { addDeck } from "@/lib/quizForms";
+import { redirect } from "next/navigation";
 
 interface DeckForm {
   name: string;
@@ -24,6 +25,7 @@ export default function CreateDeck() {
     try {
       await addDeck(deckInfo.name, deckInfo.description, deckInfo.category);
       alert("Deck created successfully");
+      redirect("/user/flashcard-library");
     } catch (error) {
       console.error(error);
       alert("Error creating deck");

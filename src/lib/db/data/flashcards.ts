@@ -1,4 +1,4 @@
-import { decks, flashcards } from "../config/mongoCollections";
+import { decks} from "../config/mongoCollections";
 import { ObjectId } from "mongodb";
 import { getDeckById } from "./decks";
 import { Deck, Flashcard, FlashcardSchema } from "./schema";
@@ -27,32 +27,27 @@ export async function addFlashcard(
   };
   newCard = await FlashcardSchema.validate(newCard);
 
-  const flashcardCollection = await flashcards();
-  const insertInfo = await flashcardCollection.insertOne(newCard);
-  if (!insertInfo.acknowledged || !insertInfo.insertedId) {
-    throw new Error("Error inserting new flashcard");
-  }
   const deckCollection = await decks();
 
   await deckCollection.findOneAndUpdate(
     { _id: deck._id },
-    { $push: { flashcardList: newCard._id } },
+    { $push: { flashcardList: newCard } },
     { returnDocument: "after" },
   );
   return newCard;
 }
 
-export async function getCardById(id: string): Promise<Flashcard> {
-  if (!ObjectId.isValid(id)) {
-    throw new Error("Invalid id for flashcard");
-  }
-  const cardCollection = await flashcards();
-  let card;
-  try {
-    card = await cardCollection.findOne({ _id: new ObjectId(id) });
-  } catch {
-    throw new Error("Failed to get flashcard");
-  }
-  if (!card) throw new Error("Flashcard not found");
-  return card;
-}
+// export async function getCardById(id: string): Promise<Flashcard> {
+//   if (!ObjectId.isValid(id)) {
+//     throw new Error("Invalid id for flashcard");
+//   }
+//   const deckCollection = await decks();
+//   let card;
+//   try {
+//     card = await deckCollection.findOne({ _id: new ObjectId(id) });
+//   } catch {
+//     throw new Error("Failed to get flashcard");
+//   }
+//   if (!card) throw new Error("Flashcard not found");
+//   return card;
+// }

@@ -3,59 +3,6 @@ import { ObjectId } from "mongodb";
 import { InferType } from "yup";
 import * as yup from "yup";
 
-export const DeckInputSchema = Yup.object({
-  name: Yup.string()
-    .trim()
-    .required("Name is required")
-    .min(1, "Must be a non-empty string"),
-  description: Yup.string()
-    .trim()
-    .required("Description is required")
-    .min(1, "Must be a non-empty string"),
-  ownerId: Yup.mixed<ObjectId>().required("User is required"),
-  flashcardList: Yup.array()
-    .of(Yup.mixed<ObjectId>().required())
-    .required("Flashcards must be an array"),
-  createdAt: Yup.date()
-    .required("CreatedAt is required")
-    .default(() => new Date()),
-  lastStudied: Yup.date()
-    .required("lastStudied is required")
-    .default(() => new Date()),
-  category: Yup.string()
-    .trim()
-    .required("Category is required")
-    .min(1, "Must be a non-empty string"),
-});
-
-export const DeckSchema = yup.object({
-  _id: yup.mixed<ObjectId>().required(),
-  name: Yup.string()
-    .trim()
-    .required("Name is required")
-    .min(1, "Must be a non-empty string"),
-  description: Yup.string()
-    .trim()
-    .required("Description is required")
-    .min(1, "Must be a non-empty string"),
-  ownerId: Yup.mixed<ObjectId>().required("User is required"),
-  flashcardList: Yup.array()
-    .of(Yup.mixed<ObjectId>().required())
-    .required("Flashcards must be an array"),
-  createdAt: Yup.date()
-    .required("CreatedAt is required")
-    .default(() => new Date()),
-  lastStudied: Yup.date()
-    .required("lastStudied is required")
-    .default(() => new Date()),
-  category: Yup.string()
-    .trim()
-    .required("Category is required")
-    .min(1, "Must be a non-empty string"),
-});
-export type DeckInput = Yup.InferType<typeof DeckInputSchema>;
-export type Deck = Yup.InferType<typeof DeckSchema>;
-
 export const FlashcardInputSchema = Yup.object({
   front: Yup.string()
     .trim()
@@ -81,6 +28,61 @@ export const FlashcardSchema = yup.object({
 });
 export type FlashcardInput = Yup.InferType<typeof FlashcardInputSchema>;
 export type Flashcard = InferType<typeof FlashcardSchema>;
+
+export const DeckInputSchema = Yup.object({
+  name: Yup.string()
+    .trim()
+    .required("Name is required")
+    .min(1, "Must be a non-empty string"),
+  description: Yup.string()
+    .trim()
+    .required("Description is required")
+    .min(1, "Must be a non-empty string"),
+  ownerId: Yup.mixed<ObjectId>().required("User is required"),
+  flashcardList: Yup.array()
+    .of(FlashcardSchema)
+    .required("Flashcards must be an array"),
+  createdAt: Yup.date()
+    .required("CreatedAt is required")
+    .default(() => new Date()),
+  lastStudied: Yup.date()
+    .required("lastStudied is required")
+    .default(() => new Date()),
+  category: Yup.string()
+    .trim()
+    .required("Category is required")
+    .min(1, "Must be a non-empty string"),
+});
+
+export const DeckSchema = yup.object({
+  _id: yup.mixed<ObjectId>().required(),
+  name: Yup.string()
+    .trim()
+    .required("Name is required")
+    .min(1, "Must be a non-empty string"),
+  description: Yup.string()
+    .trim()
+    .required("Description is required")
+    .min(1, "Must be a non-empty string"),
+  ownerId: Yup.mixed<ObjectId>().required("User is required"),
+  flashcardList: Yup.array()
+    .of(FlashcardSchema)
+    .required("Flashcards must be an array"),
+  createdAt: Yup.date()
+    .required("CreatedAt is required")
+    .default(() => new Date()),
+  lastStudied: Yup.date()
+    .required("lastStudied is required")
+    .default(() => new Date()),
+  category: Yup.string()
+    .trim()
+    .required("Category is required")
+    .min(1, "Must be a non-empty string"),
+});
+export type DeckInput = Yup.InferType<typeof DeckInputSchema>;
+export type Deck = Yup.InferType<typeof DeckSchema>;
+
+
 
 export const UserInputSchema = yup.object({
   firstName: yup

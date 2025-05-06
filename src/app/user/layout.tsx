@@ -32,7 +32,7 @@ export async function Layout({ children }: { children: React.ReactNode }) {
       <div className="flex min-h-screen w-full flex-row">
         <UserSidebar user={{ name: `${user.firstName} ${user.lastName}` }} />
         <SidebarTrigger />
-        <main>{children}</main>
+        <main className="flex-1">{children}</main>
       </div>
     </SidebarProvider>
   );

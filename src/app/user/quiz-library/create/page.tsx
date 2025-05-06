@@ -1,6 +1,7 @@
 "use client";
 import { ChangeEvent, useState } from "react";
 import { addQuiz } from "@/lib/quizForms";
+import { redirect } from "next/navigation";
 
 interface QuizForm {
     name: string;
@@ -25,6 +26,7 @@ export default function CreateQuiz() {
         try {
             await addQuiz(quizInfo.name, quizInfo.description, quizInfo.category);
             alert("Quiz created successfully");
+            redirect("/user/quiz-library");
         } catch (error) {
             console.error(error);
             alert("Error creating quiz");
