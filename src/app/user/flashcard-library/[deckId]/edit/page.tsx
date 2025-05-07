@@ -12,8 +12,8 @@ function serializeDeck(deck: Deck) { //ugh we can't sent complex objects to the 
     name:     deck.name,
     description: deck.description,
     category: deck.category,
-    createdAt:  deck.createdAt.toISOString(),
-    lastStudied: deck.lastStudied.toISOString(),
+    createdAt:  deck.createdAt ? deck.createdAt.toISOString() : new Date().toISOString(), // changed this line or else error for editing deck cards
+    lastStudied: deck.lastStudied ? deck.lastStudied.toISOString() : new Date().toISOString(), // and this
     flashcardList: deck.flashcardList.map((fc) => ({
       _id:    fc._id.toString(),
       deckId: fc.deckId.toString(),
