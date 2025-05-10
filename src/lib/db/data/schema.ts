@@ -181,6 +181,8 @@ export const QuizInputSchema = Yup.object({
     .trim()
     .required("Category is required")
     .min(1, "Must be a non-empty string"),
+  attempts: Yup.array()
+    .of(QuizAttemptSchema).required("Quiz attempts are required")
 });
 
 export const QuizSchema = yup.object({
@@ -204,7 +206,7 @@ export const QuizSchema = yup.object({
     .of(QuizEntrySchema)
     .required("Questions are required"),
   attempts: Yup.array()
-    .of(QuizAttemptSchema).required(),
+    .of(QuizAttemptSchema).required("Attempts are required"),
   category: Yup.string()
     .trim()
     .required("Category is required")
