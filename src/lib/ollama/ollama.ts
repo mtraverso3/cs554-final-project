@@ -1,6 +1,10 @@
-import ollama from "ollama";
+import { Ollama } from "ollama";
 import { Deck, QuizEntry } from "@/lib/db/data/schema";
 import * as yup from "yup";
+
+const ollama = new Ollama({ //Use env or fallback
+  host: process.env.OLLAMA_API_URL || "http://127.0.0.1:11434"
+});
 
 const modelResponseSchema = yup.object({
   options: yup

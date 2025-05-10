@@ -4,11 +4,15 @@ services:
     restart: unless-stopped
     ports:
       - "6379:6379"
+    volumes:
+      - redis_data:/data
   mongo:
     image: mongo
     restart: unless-stopped
     ports:
       - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
   ollama:
     image: ollama/ollama:latest
     restart: unless-stopped
@@ -24,3 +28,8 @@ services:
 #      - .env.local
 #    ports:
 #      - "3000:3000"
+
+volumes:
+  ollama_data:
+  mongo_data:
+  redis_data:
