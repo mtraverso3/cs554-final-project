@@ -153,7 +153,7 @@ export default function FlashcardLibrary() {
           <div className="bg-white rounded-lg p-6 max-w-md w-full">
             <h3 className="text-lg font-medium mb-2">Delete Deck</h3>
             <p className="text-gray-600 mb-4">
-              Are you sure you want to delete the deck "{deckToDelete.name}"? This action cannot be undone.
+              Are you sure you want to delete the deck &quot{deckToDelete.name}&quot? This action cannot be undone.
             </p>
             <div className="flex justify-end gap-2">
               <Button
