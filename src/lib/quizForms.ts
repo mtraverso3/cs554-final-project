@@ -72,5 +72,5 @@ export async function getQuizzes(): Promise<string> {
 export async function addQuizAttempt(quizId: string, score: number) {
   const userObject: User = await authenticateUser();
   const userId = userObject._id.toString();
-  const theObject = await quizzes.addQuizAttempt(quizId, userId, score);
+  await quizzes.addQuizAttempt(quizId, userId, score);
 }
