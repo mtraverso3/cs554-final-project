@@ -9,7 +9,6 @@ import {
 import { ObjectId } from "mongodb";
 import {quizzes} from "@/lib/db/config/mongoCollections";
 import { getUserById } from "@/lib/db/data/users";
-import { Allan, Beth_Ellen } from "next/font/google";
 
 export async function createQuiz(
   name: string,
@@ -131,7 +130,7 @@ and values of that user's attempts.*/
 export async function separateAttemptsByUser(quizId: string): Promise<{[k: string]: Array<QuizAttempt>}> {
   const theQuiz = await getQuizById(quizId);
   const attempts = theQuiz.attempts;
-  let allAttempts: {[k: string]: Array<QuizAttempt>} = {};
+  const allAttempts: {[k: string]: Array<QuizAttempt>} = {};
   for(let a = 0; a < attempts.length; a++) {
     const attempt = attempts[a];
     const userId = attempt.userId.toString();
@@ -202,7 +201,7 @@ export function mostRecent(attempts: Array<QuizAttempt>): QuizAttempt {
 }
 export async function averageByUser(quizId: string): Promise<{[k: string]: number}> {
   const allAttempts = await separateAttemptsByUser(quizId);
-  let averages: {[k: string]: number} = {};
+  const averages: {[k: string]: number} = {};
   const theKeys = Object.keys(allAttempts);
   for(let a = 0; a < theKeys.length; a++) {
     const key = theKeys[a];
@@ -212,7 +211,7 @@ export async function averageByUser(quizId: string): Promise<{[k: string]: numbe
 }
 export async function bestByUser(quizId: string): Promise<{[k: string]: QuizAttempt}> {
   const allAttempts = await separateAttemptsByUser(quizId);
-  let bestAttempts: {[k: string]: QuizAttempt} = {};
+  const bestAttempts: {[k: string]: QuizAttempt} = {};
   const theKeys = Object.keys(allAttempts);
   for(let a = 0; a < theKeys.length; a++) {
     const key = theKeys[a];
@@ -222,7 +221,7 @@ export async function bestByUser(quizId: string): Promise<{[k: string]: QuizAtte
 }
 export async function recentByUser(quizId: string): Promise<{[k: string]: QuizAttempt}> {
   const allAttempts = await separateAttemptsByUser(quizId);
-  let recentAttempts: {[k: string]: QuizAttempt} = {};
+  const recentAttempts: {[k: string]: QuizAttempt} = {};
   const theKeys = Object.keys(allAttempts);
   for(let a = 0; a < theKeys.length; a++) {
     const key = theKeys[a];
