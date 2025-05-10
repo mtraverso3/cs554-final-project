@@ -54,6 +54,17 @@ export const DeckInputSchema = Yup.object({
     .min(1, "Must be a non-empty string"),
 });
 
+export const StudyProgressSchema = Yup.object({
+  currentCardIndex: Yup.number().default(0),
+  knownCardIds: Yup.array().of(Yup.string().defined()).default([]),
+  unknownCardIds: Yup.array().of(Yup.string().defined()).default([]),
+  lastPosition: Yup.number().default(0),
+  studyTime: Yup.number().default(0),
+  isReviewMode: Yup.boolean().default(false),
+  isCompleted: Yup.boolean().default(false),
+  reviewingCardIds: Yup.array().of(Yup.string().defined()).default([])
+});
+
 export const DeckSchema = yup.object({
   _id: yup.mixed<ObjectId>().required(),
   name: Yup.string()
@@ -78,11 +89,17 @@ export const DeckSchema = yup.object({
     .trim()
     .required("Category is required")
     .min(1, "Must be a non-empty string"),
+  studyProgress: StudyProgressSchema.default(() => ({
+    currentCardIndex: 0,
+    knownCardIds: [],
+    unknownCardIds: [],
+    lastPosition: 0,
+    studyTime: 0
+  }))
 });
-export type DeckInput = Yup.InferType<typeof DeckInputSchema>;
+
 export type Deck = Yup.InferType<typeof DeckSchema>;
-
-
+export type DeckInput = Yup.InferType<typeof DeckInputSchema>;
 
 export const UserInputSchema = yup.object({
   firstName: yup
@@ -100,7 +117,7 @@ export const UserInputSchema = yup.object({
     .trim()
     .email("Invalid email")
     .required("Email is required"),
-  sub: yup.string().trim().required("Sub is required"), //authSafe internal Id
+  sub: yup.string().trim().required("Sub is required"),
 });
 export const UserSchema = yup.object({
   _id: yup.mixed<ObjectId>().required(),
@@ -119,7 +136,7 @@ export const UserSchema = yup.object({
     .trim()
     .email("Invalid email")
     .required("Email is required"),
-  sub: yup.string().trim().required("Sub is required"), //authSafe internal Id
+  sub: yup.string().trim().required("Sub is required"),
 });
 export type UserInput = Yup.InferType<typeof UserInputSchema>;
 export type User = InferType<typeof UserSchema>;
