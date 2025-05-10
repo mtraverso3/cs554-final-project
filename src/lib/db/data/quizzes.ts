@@ -15,9 +15,15 @@ export async function createQuiz(
   description: string,
   category: string,
   ownerId: string,
+  questionsList: QuizEntry[] = [],
 ): Promise<Quiz> {
   // Check if the owner exists
   await getUserById(ownerId);
+
+  // Validate questionsList
+  const validatedQuestions = await Promise.all(
+    questionsList.map((q) => QuizEntrySchema.validate(q))
+  );
 
   let newQuiz: Quiz = {
     _id: new ObjectId(),
@@ -28,7 +34,7 @@ export async function createQuiz(
     lastStudied: new Date(),
     attempts: [],
     category: category,
-    questionsList: [],
+    questionsList: validatedQuestions,
   };
 
   newQuiz = await QuizSchema.validate(newQuiz);
