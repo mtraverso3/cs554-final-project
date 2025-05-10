@@ -3,10 +3,15 @@
 import { authenticateUser, auth0 } from "@/lib/auth/auth";
 import * as users from "@/lib/db/data/users";
 import * as decks from "@/lib/db/data/decks";
-import { Quiz, User, QuizEntry, Deck } from "@/lib/db/data/schema";
+import {Quiz, User, QuizEntry, Deck, Flashcard} from "@/lib/db/data/schema";
 import * as quizzes from "@/lib/db/data/quizzes";
 import { getDeckById } from "@/lib/db/data/decks";
 import { deckToQuiz } from "@/lib/ollama/ollama";
+import * as decksDB from "@/lib/db/data/decks";
+import {ObjectId} from "mongodb";
+import { quizzes as quizCollection} from "@/lib/db/config/mongoCollections";
+
+import {getQuizById} from "@/lib/db/data/quizzes";
 
 export async function createFlashcard(front: string, back: string) {
   console.log(front, back);
@@ -68,6 +73,49 @@ export async function getQuizzes(): Promise<string> {
 
   const quizList: Quiz[] = await quizzes.getQuizzesByUserId(userId);
   return JSON.stringify(quizList);
+}
+export async function updateQuiz(
+    quizId: string,
+    name: string,
+    description: string,
+    questions: QuizEntry[]
+): Promise<string> {
+  try {
+    const userObject: User = await authenticateUser();
+
+    const quiz: Quiz = await getQuizById(quizId);
+    if (!quiz.ownerId.equals(userObject._id)) {
+      throw new Error("Not authorized to update this deck");
+    }
+
+    const questionsList: QuizEntry[] = questions.map(question => ({
+      question: question.question,
+      answers: question.answers.map(answer => ({
+        answer: answer.answer,
+        isCorrect: answer.isCorrect,
+      }))
+    }));
+
+    const quizzesCollection = await quizCollection();
+    await quizzesCollection.updateOne(
+        { _id: new ObjectId(quizId) },
+        {
+          $set: {
+            name,
+            description,
+            questionsList
+          }
+        }
+    );
+
+    return JSON.stringify({ success: true });
+  } catch (error) {
+    console.error("Error updating deck:", error);
+    return JSON.stringify({
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
 }
 
 //Not sure if quizId is better as a string or an ObjectId
