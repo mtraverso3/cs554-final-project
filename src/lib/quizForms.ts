@@ -5,7 +5,6 @@ import * as users from "@/lib/db/data/users";
 import * as decks from "@/lib/db/data/decks";
 import { Quiz, User } from "@/lib/db/data/schema";
 import * as quizzes from "@/lib/db/data/quizzes";
-import {ObjectId} from "mongodb";
 
 export async function createFlashcard(front: string, back: string) {
   console.log(front, back);
