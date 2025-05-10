@@ -176,7 +176,7 @@ export function best(attempts: Array<QuizAttempt>): QuizAttempt {
   }
   let best = attempts[0];
   for(let a = 1; a < len; a++) {
-    let attempt = attempts[a];
+    const attempt = attempts[a];
     if(attempt.score > best.score) {
       best = attempt;
     }
@@ -193,7 +193,7 @@ export function mostRecent(attempts: Array<QuizAttempt>): QuizAttempt {
   should assume that*/
   let mostRecent = attempts[0];
   for(let a = 1; a < len; a++) {
-    let attempt = attempts[a];
+    const attempt = attempts[a];
     if(attempt.date > mostRecent.date) {
       mostRecent = attempt;
     }
@@ -201,31 +201,31 @@ export function mostRecent(attempts: Array<QuizAttempt>): QuizAttempt {
   return mostRecent;
 }
 export async function averageByUser(quizId: string): Promise<{[k: string]: number}> {
-  let allAttempts = await separateAttemptsByUser(quizId);
+  const allAttempts = await separateAttemptsByUser(quizId);
   let averages: {[k: string]: number} = {};
-  let theKeys = Object.keys(allAttempts);
+  const theKeys = Object.keys(allAttempts);
   for(let a = 0; a < theKeys.length; a++) {
-    let key = theKeys[a];
+    const key = theKeys[a];
     averages[key] = average(allAttempts[key]);
   }
   return averages;
 }
 export async function bestByUser(quizId: string): Promise<{[k: string]: QuizAttempt}> {
-  let allAttempts = await separateAttemptsByUser(quizId);
+  const allAttempts = await separateAttemptsByUser(quizId);
   let bestAttempts: {[k: string]: QuizAttempt} = {};
-  let theKeys = Object.keys(allAttempts);
+  const theKeys = Object.keys(allAttempts);
   for(let a = 0; a < theKeys.length; a++) {
-    let key = theKeys[a];
+    const key = theKeys[a];
     bestAttempts[key] = best(allAttempts[key]);
   }
   return bestAttempts;
 }
 export async function recentByUser(quizId: string): Promise<{[k: string]: QuizAttempt}> {
-  let allAttempts = await separateAttemptsByUser(quizId);
+  const allAttempts = await separateAttemptsByUser(quizId);
   let recentAttempts: {[k: string]: QuizAttempt} = {};
-  let theKeys = Object.keys(allAttempts);
+  const theKeys = Object.keys(allAttempts);
   for(let a = 0; a < theKeys.length; a++) {
-    let key = theKeys[a];
+    const key = theKeys[a];
     recentAttempts[key] = mostRecent(allAttempts[key]);
   }
   return recentAttempts;
