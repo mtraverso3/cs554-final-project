@@ -32,12 +32,24 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { saveStudyProgress } from "@/lib/deckForms";
 
 type FlashcardDTO = {
   _id: string;
   deckId: string;
   front: string;
   back: string;
+};
+
+type StudyProgressDTO = {
+  currentCardIndex: number;
+  knownCardIds: string[];
+  unknownCardIds: string[];
+  lastPosition: number;
+  studyTime: number;
+  isReviewMode: boolean;
+  isCompleted: boolean;
+  reviewingCardIds: string[];
 };
 
 type DeckDTO = {
@@ -49,6 +61,7 @@ type DeckDTO = {
   createdAt: string;
   lastStudied: string;
   flashcardList: FlashcardDTO[];
+  studyProgress?: StudyProgressDTO;
 };
 
 type CardAnswer = {
@@ -81,13 +94,140 @@ export default function StudyView({ deck }: { deck: DeckDTO }) {
   const [showSettings, setShowSettings] = useState(false);
   const [previousCardIndex, setPreviousCardIndex] = useState<number | null>(null);
   const [previousCardResponses, setPreviousCardResponses] = useState<{[key: string]: boolean}>({});
-  const [showNotification, setShowNotification] = useState(false);;
+  const [showNotification, setShowNotification] = useState(false);
+  const [showResumeDialog, setShowResumeDialog] = useState(false);
 
   useEffect(() => {
     if (deck && deck.flashcardList.length > 0) {
       setCards([...deck.flashcardList]);
+      
+      if (deck.studyProgress && 
+          deck.studyProgress.currentCardIndex >= 0 && 
+          deck.studyProgress.currentCardIndex < deck.flashcardList.length &&
+          (deck.studyProgress.knownCardIds.length > 0 || 
+           deck.studyProgress.unknownCardIds.length > 0 ||
+           deck.studyProgress.studyTime > 0)) {
+        
+        setShowResumeDialog(true);
+      }
     }
   }, [deck]);
+
+const restoreProgress = () => {
+  if (deck.studyProgress) {
+    if (deck.studyProgress.isCompleted && !deck.studyProgress.isReviewMode) {
+      setKnownCards(deck.flashcardList.filter(card => 
+        deck.studyProgress?.knownCardIds.includes(card._id)));
+      
+      setUnknownCards(deck.flashcardList.filter(card => 
+        deck.studyProgress?.unknownCardIds.includes(card._id)));
+        
+      setStudyComplete(true);
+      setStudyTime(deck.studyProgress.studyTime);
+      setCardHistory(generateHistoryFromIds(deck.studyProgress.knownCardIds, deck.studyProgress.unknownCardIds));
+      setShowResumeDialog(false);
+      return;
+    }
+    
+    if (deck.studyProgress.isReviewMode && deck.studyProgress.reviewingCardIds.length > 0) {
+      const reviewCards = deck.flashcardList.filter(card => 
+        deck.studyProgress?.reviewingCardIds.includes(card._id));
+      
+      setCards(reviewCards);
+    }
+    
+    const validIndex = Math.min(
+      deck.studyProgress.currentCardIndex,
+      deck.studyProgress.isReviewMode ? 
+        deck.studyProgress.reviewingCardIds.length - 1 : 
+        deck.flashcardList.length - 1
+    );
+    
+    setCurrentCardIndex(validIndex);
+    
+    if (deck.studyProgress.studyTime > 0) {
+      setStudyTime(deck.studyProgress.studyTime);
+    }
+    
+    if (deck.studyProgress.knownCardIds.length > 0) {
+      const knownCardsList = deck.flashcardList.filter(card => 
+        deck.studyProgress?.knownCardIds.includes(card._id));
+      setKnownCards(knownCardsList);
+    }
+    
+    if (deck.studyProgress.unknownCardIds.length > 0) {
+      const unknownCardsList = deck.flashcardList.filter(card => 
+        deck.studyProgress?.unknownCardIds.includes(card._id));
+      setUnknownCards(unknownCardsList);
+    }
+    
+    if (deck.studyProgress.knownCardIds.length > 0 || deck.studyProgress.unknownCardIds.length > 0) {
+      setCardHistory(generateHistoryFromIds(deck.studyProgress.knownCardIds, deck.studyProgress.unknownCardIds));
+    }
+    
+    setShowResumeDialog(false);
+  }
+};
+
+const generateHistoryFromIds = (knownIds: string[], unknownIds: string[]) => {
+  const restoredHistory: CardAnswer[] = [];
+  
+  deck.flashcardList.filter(card => knownIds.includes(card._id))
+    .forEach(card => {
+      restoredHistory.push({
+        card,
+        known: true,
+        timestamp: new Date()
+      });
+    });
+  
+  deck.flashcardList.filter(card => unknownIds.includes(card._id))
+    .forEach(card => {
+      restoredHistory.push({
+        card,
+        known: false,
+        timestamp: new Date()
+      });
+    });
+  
+  return restoredHistory;
+};
+
+  const declineRestore = () => {
+    setShowResumeDialog(false);
+  };
+
+useEffect(() => {
+  const saveProgress = async () => {
+    if (cards.length > 0) {
+      try {
+        const knownCardIds = knownCards.map(card => card._id);
+        const unknownCardIds = unknownCards.map(card => card._id);
+        const reviewingCardIds = cards.map(card => card._id);
+        
+        await saveStudyProgress(deck._id, {
+          currentCardIndex,
+          knownCardIds,
+          unknownCardIds,
+          lastPosition: currentCardIndex,
+          studyTime,
+          isReviewMode: cards.length !== deck.flashcardList.length,
+          isCompleted: studyComplete,
+          reviewingCardIds
+        });
+      } catch (error) {
+        console.error("Failed to save progress:", error);
+      }
+    }
+  };
+  
+  const saveInterval = setInterval(saveProgress, 30000);
+  
+  return () => {
+    clearInterval(saveInterval);
+    saveProgress();
+  };
+}, [currentCardIndex, knownCards, unknownCards, studyTime, cards.length, studyComplete, deck._id, cards]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -108,6 +248,36 @@ export default function StudyView({ deck }: { deck: DeckDTO }) {
     
     return () => clearInterval(interval);
   }, [isTimerActive, studyComplete]);
+
+  const clearProgress = () => {
+    setCurrentCardIndex(0);
+    setKnownCards([]);
+    setUnknownCards([]);
+    setCardHistory([]);
+    setIsFlipped(false);
+    setStudyTime(0);
+    setPreviousCardIndex(null);
+    setPreviousCardResponses({});
+    setCards([...deck.flashcardList]);
+    
+    saveStudyProgress(
+      deck._id,
+      {
+        currentCardIndex: 0,
+        knownCardIds: [],
+        unknownCardIds: [],
+        lastPosition: 0,
+        studyTime: 0,
+        isReviewMode: false,
+        isCompleted: false,
+        reviewingCardIds: []
+      },
+      true
+    );
+    
+    setShowResumeDialog(false);
+  };
+  
 
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -347,6 +517,17 @@ export default function StudyView({ deck }: { deck: DeckDTO }) {
   const moveToNextCard = () => {
     if (currentCardIndex >= cards.length - 1) {
       setStudyComplete(true);
+      
+      saveStudyProgress(deck._id, {
+        currentCardIndex: currentCardIndex,
+        knownCardIds: knownCards.map(card => card._id),
+        unknownCardIds: unknownCards.map(card => card._id),
+        lastPosition: currentCardIndex,
+        studyTime: studyTime,
+        isReviewMode: cards.length !== deck.flashcardList.length,
+        isCompleted: true,
+        reviewingCardIds: cards.map(card => card._id)
+      }, false);
     } else {
       setCurrentCardIndex(prev => prev + 1);
       setIsFlipped(false);
@@ -448,6 +629,21 @@ export default function StudyView({ deck }: { deck: DeckDTO }) {
     setPreviousCardResponses({});
     setIsTimerActive(true);
     
+    saveStudyProgress(
+      deck._id,
+      {
+        currentCardIndex: 0,
+        knownCardIds: [],
+        unknownCardIds: [],
+        lastPosition: 0,
+        studyTime: 0,
+        isReviewMode: true,
+        isCompleted: false,
+        reviewingCardIds: cardsToReview.map(card => card._id)
+      },
+      false
+    );
+    
     setShowNotification(true);
     setTimeout(() => setShowNotification(false), 3000);
   };
@@ -470,6 +666,27 @@ export default function StudyView({ deck }: { deck: DeckDTO }) {
     }
   };
 
+  const handleExit = async () => {
+    try {
+      await saveStudyProgress(
+        deck._id,
+        {
+          currentCardIndex,
+          knownCardIds: knownCards.map(card => card._id),
+          unknownCardIds: unknownCards.map(card => card._id),
+          lastPosition: currentCardIndex,
+          studyTime,
+          isReviewMode: cards.length !== deck.flashcardList.length,
+          isCompleted: studyComplete,
+          reviewingCardIds: cards.map(card => card._id)
+        },
+        false
+      );
+    } catch (error) {
+      console.error("Failed to save progress on exit:", error);
+    }
+  };
+
   if (cards.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-[70vh] text-center">
@@ -482,7 +699,7 @@ export default function StudyView({ deck }: { deck: DeckDTO }) {
             </Link>
           </Button>
           <Button variant="outline" asChild>
-            <Link href="/user/flashcard-library">
+            <Link href="/user/flashcard-library" onClick={handleExit}>
               Back to Library
             </Link>
           </Button>
@@ -493,7 +710,27 @@ export default function StudyView({ deck }: { deck: DeckDTO }) {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* notif toast */}
+      {/* Resume study session dialog */}
+      <Dialog open={showResumeDialog} onOpenChange={setShowResumeDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Resume Your Study Session?</DialogTitle>
+            <DialogDescription>
+              You have a saved study session for this deck. Would you like to continue where you left off?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-between mt-4">
+            <Button variant="outline" onClick={clearProgress}>
+              Start New Session
+            </Button>
+            <Button onClick={restoreProgress}>
+              Resume Session
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* notification toast */}
       {showNotification && (
         <div className="fixed top-4 right-4 z-50 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded flex items-center shadow-md">
           <div className="mr-2">
@@ -516,7 +753,7 @@ export default function StudyView({ deck }: { deck: DeckDTO }) {
         </div>
       )}
       
-      {/* break reminder (might delete) */}
+      {/* break reminder */}
       <Dialog open={showBreakReminder} onOpenChange={setShowBreakReminder}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -617,7 +854,7 @@ export default function StudyView({ deck }: { deck: DeckDTO }) {
         <div className="container mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" asChild>
-              <Link href={`/user/flashcard-library/${deck._id}`}>
+              <Link href={`/user/flashcard-library/${deck._id}`} onClick={handleExit}>
                 <ArrowLeft className="mr-2" size={16} />
                 Back
               </Link>
@@ -663,7 +900,7 @@ export default function StudyView({ deck }: { deck: DeckDTO }) {
             </Button>
             
             <Button variant="ghost" size="sm" asChild>
-              <Link href="/user/flashcard-library">
+              <Link href="/user/flashcard-library" onClick={handleExit}>
                 <Home size={16} />
               </Link>
             </Button>
@@ -895,7 +1132,7 @@ export default function StudyView({ deck }: { deck: DeckDTO }) {
                 )}
                 
                 <Button variant="outline" asChild>
-                  <Link href={`/user/flashcard-library/${deck._id}`}>
+                  <Link href={`/user/flashcard-library/${deck._id}`} onClick={handleExit}>
                     Back to Deck
                   </Link>
                 </Button>

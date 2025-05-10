@@ -6,8 +6,38 @@ import { Deck, User } from "@/lib/db/data/schema";
 import { unauthorized } from "next/navigation";
 import StudyView from "./StudyView";
 
-function serializeDeck(deck: Deck) {
-  return {
+type FlashcardDTO = {
+  _id: string;
+  deckId: string;
+  front: string;
+  back: string;
+};
+
+type StudyProgressDTO = {
+  currentCardIndex: number;
+  knownCardIds: string[];
+  unknownCardIds: string[];
+  lastPosition: number;
+  studyTime: number;
+  isReviewMode: boolean;
+  isCompleted: boolean;
+  reviewingCardIds: string[];
+};
+
+type DeckDTO = {
+  _id: string;
+  ownerId: string;
+  name: string;
+  description: string;
+  category: string;
+  createdAt: string;
+  lastStudied: string;
+  flashcardList: FlashcardDTO[];
+  studyProgress?: StudyProgressDTO;
+};
+
+function serializeDeck(deck: Deck): DeckDTO {
+  const serialized: DeckDTO = {
     _id: deck._id.toString(),
     ownerId: deck.ownerId.toString(),
     name: deck.name,
@@ -20,12 +50,26 @@ function serializeDeck(deck: Deck) {
       deckId: fc.deckId.toString(),
       front: fc.front,
       back: fc.back,
-    })),
+    }))
   };
+
+  if (deck.studyProgress) {
+    serialized.studyProgress = {
+      currentCardIndex: deck.studyProgress.currentCardIndex,
+      knownCardIds: deck.studyProgress.knownCardIds.filter(id => id !== undefined) as string[],
+      unknownCardIds: deck.studyProgress.unknownCardIds.filter(id => id !== undefined) as string[],
+      lastPosition: deck.studyProgress.lastPosition,
+      studyTime: deck.studyProgress.studyTime,
+      isReviewMode: deck.studyProgress.isReviewMode || false,
+      isCompleted: deck.studyProgress.isCompleted || false,
+      reviewingCardIds: deck.studyProgress.reviewingCardIds || []
+    };
+  }
+
+  return serialized;
 }
 
 async function getDeck(id: string): Promise<Deck> {
-  "use server";
   const userObject: User = await authenticateUser();
 
   const deck: Deck = await getDeckById(id);
@@ -40,12 +84,12 @@ async function getDeck(id: string): Promise<Deck> {
 export default async function StudyPage({
   params,
 }: {
-  params: Promise<{ deckId: string }>;
+  params: { deckId: string };
 }) {
-  const { deckId } = await params;
+  const { deckId } = params;
   try {
     const deck: Deck = await getDeck(deckId);
-    
+
     return <StudyView deck={serializeDeck(deck)} />;
   } catch (error) {
     if (error instanceof Error) {
@@ -61,5 +105,11 @@ export default async function StudyPage({
         );
       }
     }
+    return (
+      <div className="p-8 text-center">
+        <h1 className="text-2xl font-bold text-red-600">Error</h1>
+        <p className="mt-4">An unexpected error occurred</p>
+      </div>
+    );
   }
 }

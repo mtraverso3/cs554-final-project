@@ -82,3 +82,72 @@ export async function deleteDeck(deckId: string): Promise<string> {
     });
   }
 }
+
+export type StudyProgressData = {
+  currentCardIndex: number;
+  knownCardIds: string[];
+  unknownCardIds: string[];
+  lastPosition: number;
+  studyTime: number;
+  isReviewMode?: boolean;
+  isCompleted?: boolean;
+  reviewingCardIds?: string[];
+  reviewRound?: number;
+  allReviewedCards?: Record<string, boolean>;
+};
+
+export async function saveStudyProgress(
+  deckId: string,
+  progress: StudyProgressData,
+  isComplete: boolean = false
+): Promise<string> {
+  try {
+    const userObject: User = await authenticateUser();
+    
+    const deck: Deck = await decksDB.getDeckById(deckId);
+    if (!deck.ownerId.equals(userObject._id)) {
+      throw new Error("Not authorized to update this deck");
+    }
+    
+    const deckCollection = await decks();
+    
+    if (isComplete) {
+      await deckCollection.updateOne(
+        { _id: new ObjectId(deckId) },
+        { 
+          $set: { 
+            lastStudied: new Date(),
+            studyProgress: {
+              currentCardIndex: 0,
+              knownCardIds: [],
+              unknownCardIds: [],
+              lastPosition: 0,
+              studyTime: 0,
+              isReviewMode: false,
+              isCompleted: false,
+              reviewingCardIds: []
+            }
+          } 
+        }
+      );
+    } else {
+      await deckCollection.updateOne(
+        { _id: new ObjectId(deckId) },
+        { 
+          $set: { 
+            lastStudied: new Date(),
+            studyProgress: progress
+          } 
+        }
+      );
+    }
+    
+    return JSON.stringify({ success: true });
+  } catch (error) {
+    console.error("Error saving study progress:", error);
+    return JSON.stringify({ 
+      success: false, 
+      error: error instanceof Error ? error.message : "Unknown error" 
+    });
+  }
+}
