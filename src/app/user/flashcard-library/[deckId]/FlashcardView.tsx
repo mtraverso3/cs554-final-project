@@ -213,6 +213,15 @@ export default function FlashcardView({ deck }: { deck: DeckDTO }) {
         </div>
         <p className="mt-2 text-gray-600 text-center">{deck.description}</p>
       </div>
+
+      <div className="flex gap-2">
+        <Button asChild variant="default">
+          <Link href={`/user/flashcard-library/${deck._id}/study`}>
+            <BookOpen className="mr-2" size={16} />
+            Study Cards
+          </Link>
+        </Button>
+      </div>
       
       {/* mode switcher */}
       <div className="flex justify-center mb-6">
