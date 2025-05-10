@@ -26,11 +26,12 @@ export default function CreateQuiz() {
         try {
             await addQuiz(quizInfo.name, quizInfo.description, quizInfo.category);
             alert("Quiz created successfully");
-            redirect("/user/quiz-library");
         } catch (error) {
             console.error(error);
             alert("Error creating quiz");
         }
+        redirect("/user/quiz-library");
+
     };
 
     return (
