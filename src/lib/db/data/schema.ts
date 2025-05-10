@@ -65,6 +65,8 @@ export const StudyProgressSchema = Yup.object({
   reviewingCardIds: Yup.array().of(Yup.string().defined()).default([])
 });
 
+export type StudyProgress = Yup.InferType<typeof StudyProgressSchema>;
+
 export const DeckSchema = yup.object({
   _id: yup.mixed<ObjectId>().required(),
   name: Yup.string()

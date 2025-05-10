@@ -1,7 +1,7 @@
 import { decks } from "../config/mongoCollections";
 import { Collection, ObjectId } from "mongodb";
 import { getUserById } from "./users";
-import { Deck, DeckSchema } from "./schema";
+import { Deck, DeckSchema, StudyProgress } from "./schema";
 
 export async function createDeck(
   name: string,
@@ -22,6 +22,7 @@ export async function createDeck(
     createdAt: new Date(),
     lastStudied: new Date(),
     category: category,
+    studyProgress: {} as StudyProgress,
   };
 
   newDeck = await DeckSchema.validate(newDeck);
