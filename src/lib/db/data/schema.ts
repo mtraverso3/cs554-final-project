@@ -149,6 +149,15 @@ export const QuizEntrySchema = Yup.object({
 });
 export type QuizEntry = Yup.InferType<typeof QuizEntrySchema>;
 
+export const QuizAttemptSchema = Yup.object({
+  userId: Yup.mixed<ObjectId>().required("User is required"),
+  score: Yup.number().required("Score is required"),
+  date: Yup.date()
+    .required("Date is required")
+    .default(() => new Date()),
+});
+export type QuizAttempt = Yup.InferType<typeof QuizAttemptSchema>;
+
 export const QuizInputSchema = Yup.object({
   name: Yup.string()
     .trim()
@@ -194,6 +203,8 @@ export const QuizSchema = yup.object({
   questionsList: Yup.array()
     .of(QuizEntrySchema)
     .required("Questions are required"),
+  attempts: Yup.array()
+    .of(QuizAttemptSchema).required(),
   category: Yup.string()
     .trim()
     .required("Category is required")

@@ -5,6 +5,7 @@ import * as users from "@/lib/db/data/users";
 import * as decks from "@/lib/db/data/decks";
 import { Quiz, User } from "@/lib/db/data/schema";
 import * as quizzes from "@/lib/db/data/quizzes";
+import {ObjectId} from "mongodb";
 
 export async function createFlashcard(front: string, back: string) {
   console.log(front, back);
@@ -65,4 +66,11 @@ export async function getQuizzes(): Promise<string> {
 
   const quizList: Quiz[] = await quizzes.getQuizzesByUserId(userId);
   return JSON.stringify(quizList);
+}
+
+//Not sure if quizId is better as a string or an ObjectId
+export async function addQuizAttempt(quizId: string, score: number) {
+  const userObject: User = await authenticateUser();
+  const userId = userObject._id.toString();
+  const theObject = await quizzes.addQuizAttempt(quizId, userId, score);
 }
