@@ -3,6 +3,21 @@ import { ObjectId } from "mongodb";
 import { InferType } from "yup";
 import * as yup from "yup";
 
+
+const ObjectIdSchema = yup.mixed((value): value is ObjectId => ObjectId.isValid(value))
+
+export const CommentSchema = Yup.object({
+  ownerId: ObjectIdSchema.required("User is required"),
+  text: Yup.string()
+    .trim()
+    .required("Text is required")
+    .min(1, "Must be a non-empty string"),
+  createdAt: Yup.date()
+    .required("CreatedAt is required")
+    .default(() => new Date()),
+});
+export type Comment = Yup.InferType<typeof CommentSchema>;
+
 export const FlashcardInputSchema = Yup.object({
   front: Yup.string()
     .trim()
@@ -12,10 +27,10 @@ export const FlashcardInputSchema = Yup.object({
     .trim()
     .required("Back text is required")
     .min(1, "Must be non-empty"),
-  deckId: Yup.mixed<ObjectId>().required("deckId is required"),
+  deckId: ObjectIdSchema.required("deckId is required"),
 });
 export const FlashcardSchema = yup.object({
-  _id: yup.mixed<ObjectId>().required(),
+  _id: ObjectIdSchema.required(),
   front: Yup.string()
     .trim()
     .required("Front text is required")
@@ -24,7 +39,7 @@ export const FlashcardSchema = yup.object({
     .trim()
     .required("Back text is required")
     .min(1, "Must be non-empty"),
-  deckId: Yup.mixed<ObjectId>().required("deckId is required"),
+  deckId: ObjectIdSchema.required("deckId is required"),
 });
 export type FlashcardInput = Yup.InferType<typeof FlashcardInputSchema>;
 export type Flashcard = InferType<typeof FlashcardSchema>;
@@ -38,7 +53,7 @@ export const DeckInputSchema = Yup.object({
     .trim()
     .required("Description is required")
     .min(1, "Must be a non-empty string"),
-  ownerId: Yup.mixed<ObjectId>().required("User is required"),
+  ownerId: ObjectIdSchema.required("User is required"),
   flashcardList: Yup.array()
     .of(FlashcardSchema)
     .required("Flashcards must be an array"),
@@ -52,6 +67,13 @@ export const DeckInputSchema = Yup.object({
     .trim()
     .required("Category is required")
     .min(1, "Must be a non-empty string"),
+  likes: Yup.array()
+    .of(ObjectIdSchema)
+    .default([]),
+  comments: Yup.array()
+    .of(CommentSchema)
+    .default([]),
+
 });
 
 export const StudyProgressSchema = Yup.object({
@@ -68,7 +90,7 @@ export const StudyProgressSchema = Yup.object({
 export type StudyProgress = Yup.InferType<typeof StudyProgressSchema>;
 
 export const DeckSchema = yup.object({
-  _id: yup.mixed<ObjectId>().required(),
+  _id: ObjectIdSchema.required(),
   name: Yup.string()
     .trim()
     .required("Name is required")
@@ -77,7 +99,7 @@ export const DeckSchema = yup.object({
     .trim()
     .required("Description is required")
     .min(1, "Must be a non-empty string"),
-  ownerId: Yup.mixed<ObjectId>().required("User is required"),
+  ownerId: ObjectIdSchema.required("User is required"),
   flashcardList: Yup.array()
     .of(FlashcardSchema)
     .required("Flashcards must be an array"),
@@ -97,7 +119,15 @@ export const DeckSchema = yup.object({
     unknownCardIds: [],
     lastPosition: 0,
     studyTime: 0
-  }))
+  })),
+  likes: Yup.array()
+    .of(ObjectIdSchema.required())
+    .default([])
+    .required("Likes must be an array"),
+  comments: Yup.array()
+    .of(CommentSchema)
+    .default([])
+    .required("Comments must be an array"),
 });
 
 export type Deck = Yup.InferType<typeof DeckSchema>;
@@ -122,7 +152,7 @@ export const UserInputSchema = yup.object({
   sub: yup.string().trim().required("Sub is required"),
 });
 export const UserSchema = yup.object({
-  _id: yup.mixed<ObjectId>().required(),
+  _id: ObjectIdSchema.required(),
   firstName: yup
     .string()
     .trim()
@@ -169,7 +199,7 @@ export const QuizEntrySchema = Yup.object({
 export type QuizEntry = Yup.InferType<typeof QuizEntrySchema>;
 
 export const QuizAttemptSchema = Yup.object({
-  userId: Yup.mixed<ObjectId>().required("User is required"),
+  userId: ObjectIdSchema.required("User is required"),
   score: Yup.number().required("Score is required"),
   date: Yup.date()
     .required("Date is required")
@@ -186,7 +216,7 @@ export const QuizInputSchema = Yup.object({
     .trim()
     .required("Description is required")
     .min(1, "Must be a non-empty string"),
-  ownerId: Yup.mixed<ObjectId>().required("User is required"),
+  ownerId: ObjectIdSchema.required("User is required"),
   createdAt: Yup.date()
       .required("CreatedAt is required")
       .default(() => new Date()),
@@ -205,7 +235,7 @@ export const QuizInputSchema = Yup.object({
 });
 
 export const QuizSchema = yup.object({
-  _id: yup.mixed<ObjectId>().required(),
+  _id: ObjectIdSchema.required(),
   name: Yup.string()
     .trim()
     .required("Name is required")
@@ -214,7 +244,7 @@ export const QuizSchema = yup.object({
     .trim()
     .required("Description is required")
     .min(1, "Must be a non-empty string"),
-  ownerId: Yup.mixed<ObjectId>().required("User is required"),
+  ownerId: ObjectIdSchema.required("User is required"),
   createdAt: Yup.date()
       .required("CreatedAt is required")
       .default(() => new Date()),

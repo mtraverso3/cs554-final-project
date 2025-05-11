@@ -1,7 +1,7 @@
 import { decks } from "../config/mongoCollections";
 import { Collection, ObjectId } from "mongodb";
 import { getUserById } from "./users";
-import { Deck, DeckSchema, StudyProgress } from "./schema";
+import { CommentSchema, Comment, Deck, DeckSchema, StudyProgress } from "./schema";
 
 export async function createDeck(
   name: string,
@@ -23,6 +23,8 @@ export async function createDeck(
     lastStudied: new Date(),
     category: category,
     studyProgress: {} as StudyProgress,
+    likes: [],
+    comments: [],
   };
 
   newDeck = await DeckSchema.validate(newDeck);
@@ -73,6 +75,82 @@ export async function getDecksByUserId(
   }
   if (!decksList) {
     throw new Error("Decks not found");
+  }
+  return decksList;
+}
+
+
+export async function toggleLike(
+  deckId: string,
+  userId: string,
+): Promise<Deck> {
+  if (!ObjectId.isValid(deckId) || !ObjectId.isValid(userId)) {
+    throw new Error("Invalid ObjectId");
+  }
+
+  const deckCollection = await decks();
+  const deck: Deck = await getDeckById(deckId);
+
+  if (deck.likes.includes(new ObjectId(userId))) {
+    await deckCollection.updateOne(
+      { _id: new ObjectId(deckId) },
+      { $pull: { likes: userId } },
+    );
+  } else {
+    await deckCollection.updateOne(
+      { _id: new ObjectId(deckId) },
+      { $addToSet: { likes: userId } },
+    );
+  }
+
+  return getDeckById(deckId);
+}
+
+export async function addComment(
+  deckId: string,
+  userId: string,
+  text: string,
+): Promise<Deck> {
+  if (!ObjectId.isValid(deckId) || !ObjectId.isValid(userId)) {
+    throw new Error("Invalid ObjectId");
+  }
+
+  const deckCollection = await decks();
+
+  let newComment: Comment = {
+    ownerId: new ObjectId(userId),
+    text,
+    createdAt: new Date(),
+  };
+
+  newComment = await CommentSchema.validate(newComment);
+
+  await deckCollection.updateOne(
+    { _id: new ObjectId(deckId) },
+    { $push: { comments: newComment } },
+  );
+
+  return getDeckById(deckId);
+}
+
+export async function getLikedDecksByUser(
+  userId: string,
+): Promise<Deck[]> {
+  if (!ObjectId.isValid(userId)) {
+    throw new Error("Invalid ObjectId");
+  }
+
+  const deckCollection = await decks();
+  let decksList;
+  try {
+    decksList = await deckCollection
+      .find({ likes: { $in: [new ObjectId(userId)] } })
+      .toArray();
+  } catch {
+    throw new Error("Failed to get liked decks");
+  }
+  if (!decksList) {
+    throw new Error("Liked decks not found");
   }
   return decksList;
 }

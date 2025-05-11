@@ -20,6 +20,14 @@ function serializeDeck(deck: Deck) {
       front: fc.front,
       back: fc.back,
     })),
+    studyProgress: deck.studyProgress,
+    likes: deck.likes.map((like) => like.toString()),
+    comments: deck.comments.map((comment) => ({
+      userId: comment.ownerId.toString(),
+      text: comment.text,
+      createdAt: comment.createdAt ? comment.createdAt.toISOString() : new Date().toISOString(),
+    })),
+
   };
 }
 
