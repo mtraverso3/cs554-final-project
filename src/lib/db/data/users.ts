@@ -81,3 +81,20 @@ export async function getUserBySub(sub: string): Promise<User> {
   await client.set(cacheKey, serializeUser(foundUser), { EX: 3600 });
   return foundUser;
 }
+
+export async function updateUser(id: string, firstName: string, lastName: string) {
+  const theUsers = await users();
+  const theUser = await getUserById(id);
+  theUser.firstName = firstName;
+  theUser.lastName = lastName;
+    const theInfo = await theUsers.findOneAndUpdate(
+    { _id: new ObjectId(id) },
+    { $set: theUser },
+    { returnDocument: "after" }
+  );
+  if (!theInfo) {
+    throw "Could not update user.";
+  }
+  const finalUser = await getUserById(id);
+  return finalUser;
+}
