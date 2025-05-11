@@ -11,25 +11,6 @@ import { useRouter } from "next/navigation";
 import {QuizEntry, Quiz} from "@/lib/db/data/schema";
 import {updateQuiz} from "@/lib/quizForms";
 
-type Flashcard = { front: string; back: string };
-
-type FlashcardDTO = {
-    _id: string;
-    deckId: string;
-    front: string;
-    back: string;
-};
-
-type DeckDTO = { //todo: consider changing the schema to have `Type`s and `TypeDTO`s
-    _id: string;
-    ownerId: string;
-    name: string;
-    description: string;
-    category: string;
-    createdAt: string; // as string
-    lastStudied: string; // as string
-    flashcardList: FlashcardDTO[];
-};
 
 export default function EditDeckForm({ quiz }: { quiz: Quiz }) {
     const router = useRouter();
@@ -46,7 +27,7 @@ export default function EditDeckForm({ quiz }: { quiz: Quiz }) {
     const addAnswer = () => ({ answer: "", isCorrect: false });
     const addCard= () => setQuestions(prev => [...prev, { question: "", answers: [addAnswer()] }]);
 
-    const updateCard = (index: number, field: keyof Flashcard, value: string) => {
+    const updateCard = (index: number, field: keyof QuizEntry, value: string) => {
         setQuestions(prevQuestions => {
             const newQuestions = [...prevQuestions];
             newQuestions[index] = { ...newQuestions[index], [field]: value };

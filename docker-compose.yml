@@ -19,7 +19,7 @@ services:
     ports:
       - "11434:11434"
     volumes:
-      - ollama_data:/root/.ollama
+      - ./ollama_data:/root/.ollama
 #  cs554-webapp:
 #    build:
 #      context: .
@@ -28,6 +28,8 @@ services:
 #      - .env.local
 #    ports:
 #      - "3000:3000"
+
+
 
 volumes:
   ollama_data:
