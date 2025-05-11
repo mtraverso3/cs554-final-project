@@ -70,6 +70,13 @@ type CardAnswer = {
   timestamp: Date;
 };
 
+type CardMasteryStatus = "mastered" | "learning" | "not-learned";
+type CardWithMastery = {
+  cardId: string;
+  status: CardMasteryStatus;
+  reviewCount: number;
+};
+
 export default function StudyView({ deck }: { deck: DeckDTO }) {
   const router = useRouter();
   const [cards, setCards] = useState<FlashcardDTO[]>([]);
@@ -90,12 +97,12 @@ export default function StudyView({ deck }: { deck: DeckDTO }) {
   const [studyTime, setStudyTime] = useState(0);
   const [isTimerActive, setIsTimerActive] = useState(true);
   const [showBreakReminder, setShowBreakReminder] = useState(false);
-  const [spacedRepetition, setSpacedRepetition] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const [previousCardIndex, setPreviousCardIndex] = useState<number | null>(null);
   const [previousCardResponses, setPreviousCardResponses] = useState<{[key: string]: boolean}>({});
   const [showNotification, setShowNotification] = useState(false);
   const [showResumeDialog, setShowResumeDialog] = useState(false);
+  const [cardMasteryData, setCardMasteryData] = useState<Record<string, CardWithMastery>>({});
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     if (deck && deck.flashcardList.length > 0) {
@@ -110,8 +117,84 @@ export default function StudyView({ deck }: { deck: DeckDTO }) {
         
         setShowResumeDialog(true);
       }
+      
+      loadCardMasteryData();
     }
   }, [deck]);
+
+  const loadCardMasteryData = () => {
+    try {
+      const storedData = localStorage.getItem(`deck-${deck._id}-mastery`);
+      
+      if (storedData) {
+        const parsedData = JSON.parse(storedData) as Record<string, CardWithMastery>;
+        setCardMasteryData(parsedData);
+      } else {
+        const initialData: Record<string, CardWithMastery> = {};
+        
+        deck.flashcardList.forEach(card => {
+          initialData[card._id] = {
+            cardId: card._id,
+            status: 'not-learned',
+            reviewCount: 0
+          };
+        });
+        
+        setCardMasteryData(initialData);
+        localStorage.setItem(`deck-${deck._id}-mastery`, JSON.stringify(initialData));
+      }
+    } catch (error) {
+      console.error("Failed to load mastery data:", error);
+      const initialData: Record<string, CardWithMastery> = {};
+      
+      deck.flashcardList.forEach(card => {
+        initialData[card._id] = {
+          cardId: card._id,
+          status: 'not-learned',
+          reviewCount: 0
+        };
+      });
+      
+      setCardMasteryData(initialData);
+    }
+  };
+
+  const updateCardMasteryStatus = (cardId: string, isCorrect: boolean) => {
+    setCardMasteryData(prev => {
+      const updatedData = { ...prev };
+      const currentCardData = updatedData[cardId] || { 
+        cardId, 
+        status: 'not-learned', 
+        reviewCount: 0 
+      };
+      
+      const newCount = currentCardData.reviewCount + 1;
+      let newStatus: CardMasteryStatus = currentCardData.status;
+      
+      if (isCorrect) {
+        if (currentCardData.status === 'not-learned') {
+          newStatus = 'learning';
+        } else if (currentCardData.status === 'learning') {
+          newStatus = 'mastered';
+        }
+      } else {
+        if (currentCardData.status === 'mastered') {
+          newStatus = 'learning';
+        } else if (currentCardData.status === 'learning') {
+          newStatus = 'not-learned';
+        }
+      }
+      
+      updatedData[cardId] = {
+        cardId,
+        status: newStatus,
+        reviewCount: newCount
+      };
+      localStorage.setItem(`deck-${deck._id}-mastery`, JSON.stringify(updatedData));
+      
+      return updatedData;
+    });
+  };
 
 const restoreProgress = () => {
   if (deck.studyProgress) {
@@ -350,33 +433,21 @@ useEffect(() => {
     setShowNotification(true);
     setTimeout(() => setShowNotification(false), 3000);
 
-    if (spacedRepetition && cardHistory.length > 0) {
-      const sortedCards = [...deck.flashcardList].sort((a, b) => {
-        const aKnowledge = cardHistory.filter(
-          h => h.card._id === a._id && h.known
-        ).length;
-        const bKnowledge = cardHistory.filter(
-          h => h.card._id === b._id && h.known
-        ).length;
-        
-        return aKnowledge - bKnowledge;
-      });
-      
-      setCards(sortedCards);
-    } else {
-      if (shuffled) {
-        const cardsToShuffle = [...deck.flashcardList];
-        
-        for (let i = cardsToShuffle.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [cardsToShuffle[i], cardsToShuffle[j]] = [cardsToShuffle[j], cardsToShuffle[i]];
+    const sortedCards = [...deck.flashcardList].sort((a, b) => {
+      const aMastery = cardMasteryData[a._id]?.status || 'not-learned';
+      const bMastery = cardMasteryData[b._id]?.status || 'not-learned';
+      const getMasteryValue = (status: CardMasteryStatus): number => {
+        switch (status) {
+          case 'not-learned': return 0;
+          case 'learning': return 1;
+          case 'mastered': return 2;
         }
-        
-        setCards(cardsToShuffle);
-      } else {
-        setCards([...deck.flashcardList]);
-      }
-    }
+      };
+      
+      return getMasteryValue(aMastery) - getMasteryValue(bMastery);
+    });
+    
+    setCards(sortedCards);
   };
 
   const toggleDefinitionFirst = () => {
@@ -433,6 +504,9 @@ useEffect(() => {
     setIsAnimating(true);
     
     const currentCard = cards[currentCardIndex];
+    
+    updateCardMasteryStatus(currentCard._id, true);
+    
     setKnownCards(prev => [...prev, currentCard]);
     setPreviousCardIndex(currentCardIndex);
     setPreviousCardResponses(prev => ({
@@ -462,8 +536,10 @@ useEffect(() => {
     setIsAnimating(true);
     
     const currentCard = cards[currentCardIndex];
-    setUnknownCards(prev => [...prev, currentCard]);
     
+    updateCardMasteryStatus(currentCard._id, false);
+    
+    setUnknownCards(prev => [...prev, currentCard]);
     setPreviousCardIndex(currentCardIndex);
     setPreviousCardResponses(prev => ({
       ...prev,
@@ -518,6 +594,7 @@ useEffect(() => {
     if (currentCardIndex >= cards.length - 1) {
       setStudyComplete(true);
       
+      const updatedMasteryStats = getMasteryStats();
       saveStudyProgress(deck._id, {
         currentCardIndex: currentCardIndex,
         knownCardIds: knownCards.map(card => card._id),
@@ -687,6 +764,46 @@ useEffect(() => {
     }
   };
 
+  const getMasteryStats = () => {
+   let currentData: Record<string, CardWithMastery> = {};
+  
+   try {
+     const storedData = localStorage.getItem(`deck-${deck._id}-mastery`);
+     if (storedData) {
+       currentData = JSON.parse(storedData);
+     } else {
+       currentData = cardMasteryData;
+     }
+   } catch (e) {
+     currentData = cardMasteryData;
+   }
+   
+   const stats = {
+     mastered: 0,
+     learning: 0,
+     notLearned: 0,
+     total: Object.keys(currentData).length
+   };
+   
+   Object.values(currentData).forEach(card => {
+     switch (card.status) {
+       case 'mastered':
+         stats.mastered++;
+         break;
+       case 'learning':
+         stats.learning++;
+         break;
+       case 'not-learned':
+         stats.notLearned++;
+         break;
+     }
+   });
+   
+   return stats;
+ };
+  
+  const masteryStats = getMasteryStats();
+
   if (cards.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-[70vh] text-center">
@@ -806,23 +923,7 @@ useEffect(() => {
               </div>
             </div>
             
-            <div className="flex items-center justify-between">
-              <Label htmlFor="spaced-repetition">Spaced Repetition</Label>
-              <div 
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  spacedRepetition ? 'bg-primary' : 'bg-gray-200'
-                }`}
-                onClick={() => setSpacedRepetition(!spacedRepetition)}
-              >
-                <span 
-                  className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
-                    spacedRepetition ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                >
-                  {spacedRepetition && <Check className="h-3 w-3 text-primary" />}
-                </span>
-              </div>
-            </div>
+            {/* Removed spaced repetition toggle since it's always enabled now */}
             
             <Separator />
             
@@ -949,13 +1050,31 @@ useEffect(() => {
         <div className="flex flex-col flex-1">
           {!studyComplete ? (
             <>
+              {/* spaced repetition stats */}
+              <div className="flex justify-between items-center mb-4 bg-gray-50 p-3 rounded-lg shadow-sm">
+                <h3 className="text-sm font-medium">Spaced Repetition Progress</h3>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center">
+                    <span className="w-3 h-3 bg-green-500 rounded-full mr-1"></span>
+                    <span className="text-xs">Mastered: {masteryStats.mastered}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="w-3 h-3 bg-yellow-500 rounded-full mr-1"></span>
+                    <span className="text-xs">Learning: {masteryStats.learning}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="w-3 h-3 bg-gray-300 rounded-full mr-1"></span>
+                    <span className="text-xs">Not Learned: {masteryStats.notLearned}</span>
+                  </div>
+                </div>
+              </div>
+              
               {/* study info */}
               <div className="flex justify-between mb-6">
                 <div>
                   <span className="text-sm text-gray-500">
                     {showDefinitionFirst ? 'Showing definitions first' : 'Showing terms first'} 
                     {shuffled ? ' • Shuffled' : ''}
-                    {spacedRepetition ? ' • Spaced repetition on' : ''}
                   </span>
                 </div>
                 
@@ -1004,12 +1123,45 @@ useEffect(() => {
                           />
                         </Button>
                       </div>
+                      
+                      {/* Show mastery status on the card */}
+                      {cards.length > 0 && currentCardIndex < cards.length && (
+                        <div className="absolute bottom-4 left-4 flex items-center">
+                          {(() => {
+                            const card = cards[currentCardIndex];
+                            const status = cardMasteryData[card._id]?.status || 'not-learned';
+                            let color, text;
+                            
+                            switch(status) {
+                              case 'mastered':
+                                color = 'bg-green-500';
+                                text = 'Mastered';
+                                break;
+                              case 'learning':
+                                color = 'bg-yellow-500';
+                                text = 'Learning';
+                                break;
+                              default:
+                                color = 'bg-gray-300';
+                                text = 'Not Learned';
+                            }
+                            
+                            return (
+                              <>
+                                <span className={`w-2 h-2 ${color} rounded-full mr-1`}></span>
+                                <span className="text-xs text-gray-400">{text}</span>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      )}
+                      
                       {showDefinitionFirst ? (
-                        <div className="absolute bottom-4 left-4 text-xs text-gray-400">
+                        <div className="absolute bottom-4 right-4 text-xs text-gray-400">
                           Definition
                         </div>
                       ) : (
-                        <div className="absolute bottom-4 left-4 text-xs text-gray-400">
+                        <div className="absolute bottom-4 right-4 text-xs text-gray-400">
                           Term
                         </div>
                       )}
@@ -1038,12 +1190,45 @@ useEffect(() => {
                           />
                         </Button>
                       </div>
+                      
+                      {/* show mastery status on the card back too */}
+                      {cards.length > 0 && currentCardIndex < cards.length && (
+                        <div className="absolute bottom-4 left-4 flex items-center">
+                          {(() => {
+                            const card = cards[currentCardIndex];
+                            const status = cardMasteryData[card._id]?.status || 'not-learned';
+                            let color, text;
+                            
+                            switch(status) {
+                              case 'mastered':
+                                color = 'bg-green-500';
+                                text = 'Mastered';
+                                break;
+                              case 'learning':
+                                color = 'bg-yellow-500';
+                                text = 'Learning';
+                                break;
+                              default:
+                                color = 'bg-gray-300';
+                                text = 'Not Learned';
+                            }
+                            
+                            return (
+                              <>
+                                <span className={`w-2 h-2 ${color} rounded-full mr-1`}></span>
+                                <span className="text-xs text-gray-400">{text}</span>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      )}
+                      
                       {showDefinitionFirst ? (
-                        <div className="absolute bottom-4 left-4 text-xs text-gray-400">
+                        <div className="absolute bottom-4 right-4 text-xs text-gray-400">
                           Term
                         </div>
                       ) : (
-                        <div className="absolute bottom-4 left-4 text-xs text-gray-400">
+                        <div className="absolute bottom-4 right-4 text-xs text-gray-400">
                           Definition
                         </div>
                       )}
@@ -1115,6 +1300,34 @@ useEffect(() => {
                   <div>
                     <div className="text-3xl font-bold text-red-500">{unknownCards.length}</div>
                     <div className="text-sm text-gray-500">To Review</div>
+                  </div>
+                </div>
+                
+                {/* Spaced repetition stats */}
+                <div className="mt-6 pt-6 border-t">
+                  <h3 className="text-lg font-medium mb-2">Spaced Repetition Progress</h3>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="p-2 bg-green-50 rounded">
+                      <div className="flex items-center justify-center mb-1">
+                        <span className="w-3 h-3 bg-green-500 rounded-full mr-1"></span>
+                      </div>
+                      <div className="text-2xl font-bold text-green-600">{masteryStats.mastered}</div>
+                      <div className="text-xs text-gray-500">Mastered</div>
+                    </div>
+                    <div className="p-2 bg-yellow-50 rounded">
+                      <div className="flex items-center justify-center mb-1">
+                        <span className="w-3 h-3 bg-yellow-500 rounded-full mr-1"></span>
+                      </div>
+                      <div className="text-2xl font-bold text-yellow-600">{masteryStats.learning}</div>
+                      <div className="text-xs text-gray-500">Learning</div>
+                    </div>
+                    <div className="p-2 bg-gray-50 rounded">
+                      <div className="flex items-center justify-center mb-1">
+                        <span className="w-3 h-3 bg-gray-300 rounded-full mr-1"></span>
+                      </div>
+                      <div className="text-2xl font-bold text-gray-600">{masteryStats.notLearned}</div>
+                      <div className="text-xs text-gray-500">Not Learned</div>
+                    </div>
                   </div>
                 </div>
               </div>
