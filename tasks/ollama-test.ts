@@ -33,6 +33,8 @@ async function main() {
     lastStudied: new Date(),
     category: "Sample Category",
     studyProgress: {} as StudyProgress,
+    likes: [],
+    comments: [],
   };
 
   try {
