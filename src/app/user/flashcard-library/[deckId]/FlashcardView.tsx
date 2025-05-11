@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight, Edit, X, Check, List, BookOpen, Volume2, Home } from "lucide-react";
+import { ChevronLeft, ChevronRight, Edit, X, Check, List, BookOpen, Volume2, Home, LayoutGrid, BarChart2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,12 @@ type DeckDTO = {
   flashcardList: FlashcardDTO[];
 };
 
+type CardMasteryStatus = "mastered" | "learning" | "not-learned";
+type CardWithMastery = FlashcardDTO & {
+  masteryStatus: CardMasteryStatus;
+  reviewCount: number;
+};
+
 export default function FlashcardView({ deck }: { deck: DeckDTO }) {
   const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -35,10 +41,102 @@ export default function FlashcardView({ deck }: { deck: DeckDTO }) {
   const [isSaving, setIsSaving] = useState(false);
   const [cards, setCards] = useState<FlashcardDTO[]>(deck.flashcardList);
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
+  const [listViewMode, setListViewMode] = useState<'original' | 'spaced'>('original');
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [cardsWithMastery, setCardsWithMastery] = useState<CardWithMastery[]>([]);
   
   const hasCards = cards.length > 0;
   const currentCard = hasCards ? cards[currentIndex] : null;
+
+  // all mastery stuff
+  const masteredCount = cardsWithMastery.filter(card => card.masteryStatus === 'mastered').length;
+  const learningCount = cardsWithMastery.filter(card => card.masteryStatus === 'learning').length;
+  const notLearnedCount = cardsWithMastery.filter(card => card.masteryStatus === 'not-learned').length;
+
+  useEffect(() => {
+    const loadCardMasteryData = () => {
+      const storedData = localStorage.getItem(`deck-${deck._id}-mastery`);
+      let masteryData: Record<string, { status: CardMasteryStatus, count: number }> = {};
+      
+      if (storedData) {
+        try {
+          masteryData = JSON.parse(storedData);
+        } catch (e) {
+          console.error("Failed to parse stored mastery data:", e);
+        }
+      }
+      
+      const cardsWithMasteryStatus: CardWithMastery[] = deck.flashcardList.map(card => {
+        const cardData = masteryData[card._id] || { status: 'not-learned', count: 0 };
+        return {
+          ...card,
+          masteryStatus: cardData.status,
+          reviewCount: cardData.count
+        };
+      });
+      
+      setCardsWithMastery(cardsWithMasteryStatus);
+    };
+    
+    loadCardMasteryData();
+  }, [deck._id, deck.flashcardList]);
+
+  useEffect(() => {
+    if (cardsWithMastery.length > 0) {
+      const masteryData: Record<string, { status: CardMasteryStatus, count: number }> = {};
+      
+      cardsWithMastery.forEach(card => {
+        masteryData[card._id] = {
+          status: card.masteryStatus,
+          count: card.reviewCount
+        };
+      });
+      
+      localStorage.setItem(`deck-${deck._id}-mastery`, JSON.stringify(masteryData));
+    }
+  }, [cardsWithMastery, deck._id]);
+
+  // lil funny need to check later
+  const updateCardMasteryStatus = (cardId: string, isCorrect: boolean) => {
+    setCardsWithMastery(prevCards => 
+      prevCards.map(card => {
+        if (card._id === cardId) {
+          const newCount = card.reviewCount + 1;
+          let newStatus: CardMasteryStatus = card.masteryStatus;
+          
+          // to explain how works (for me)
+          // if correct: 
+          // - not-learned = learning (after 1 correct review)
+          // - learning = mastered (after 3 correct review)
+
+          // if incorrect:
+          // - mastered = learning
+          // - learning = not-learned (after 2 incorrect reviews)
+          
+          if (isCorrect) {
+            if (card.masteryStatus === 'not-learned' && newCount >= 1) {
+              newStatus = 'learning';
+            } else if (card.masteryStatus === 'learning' && newCount >= 3) {
+              newStatus = 'mastered';
+            }
+          } else {
+            if (card.masteryStatus === 'mastered') {
+              newStatus = 'learning';
+            } else if (card.masteryStatus === 'learning' && newCount >= 2) {
+              newStatus = 'not-learned';
+            }
+          }
+          
+          return {
+            ...card,
+            masteryStatus: newStatus,
+            reviewCount: newCount
+          };
+        }
+        return card;
+      })
+    );
+  };
 
   useEffect(() => {
     return () => {
@@ -90,7 +188,7 @@ export default function FlashcardView({ deck }: { deck: DeckDTO }) {
         window.speechSynthesis.speak(utterance);
       }
     } else {
-      alert("Sorry, your browser doesn't support text-to-speech!"); // in case someone does have this feature
+      alert("Sorry, your browser doesn't support text-to-speech!");
     }
   };
   
@@ -178,12 +276,17 @@ export default function FlashcardView({ deck }: { deck: DeckDTO }) {
     }
   };
 
-  const saveAndNavigateToLibrary = async () => {
-    if (editing !== null) {
-      await saveEditing();
+  const getMasteryColorClass = (masteryStatus?: CardMasteryStatus): string => {
+    switch (masteryStatus) {
+      case 'mastered':
+        return 'border-l-green-500';
+      case 'learning':
+        return 'border-l-yellow-500';
+      case 'not-learned':
+        return 'border-l-gray-300';
+      default:
+        return 'border-l-gray-300';
     }
-    
-    router.push('/user/flashcard-library');
   };
 
   return (
@@ -231,7 +334,7 @@ export default function FlashcardView({ deck }: { deck: DeckDTO }) {
             className="rounded-r-none"
             onClick={() => setViewMode('card')}
           >
-            <BookOpen className="mr-2" size={16} />
+            <LayoutGrid className="mr-2" size={16} />
             Card View
           </Button>
           <Button
@@ -417,94 +520,261 @@ export default function FlashcardView({ deck }: { deck: DeckDTO }) {
           {/* list view (flashcards in a list) */}
           {viewMode === 'list' && (
             <div className="max-w-4xl mx-auto">
-              <div className="space-y-6">
-                {cards.map((card, idx) => (
-                  <div key={card._id} className="border rounded-lg shadow overflow-hidden">
-                    <div className="bg-gray-50 p-4 flex items-center justify-between">
-                      <div className="flex items-center">
-                        <span className="font-medium text-gray-700 mr-2">Card {idx + 1}</span>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="rounded-full p-1"
-                          onClick={() => {
-                            if (isSpeaking) {
-                              stopSpeaking();
-                            } else {
-                              speakCardContent(card, false, true);
-                            }
-                          }}
-                          disabled={editing === idx}
-                        >
-                          <Volume2 size={14} className={isSpeaking ? 'text-blue-600' : ''} />
-                        </Button>
-                      </div>
-                      
-                      <div className="flex space-x-2">
-                        {editing === idx ? (
-                          <>
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              onClick={cancelEditing}
-                              disabled={isSaving}
-                            >
-                              <X size={16} className="mr-1" />
-                              Cancel
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              onClick={() => saveEditing(idx)}
-                              disabled={isSaving}
-                            >
-                              {isSaving ? "Saving..." : (
-                                <>
-                                  <Check size={16} className="mr-1" />
-                                  Save
-                                </>
-                              )}
-                            </Button>
-                          </>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => startEditing(idx)}
-                          >
-                            <Edit size={16} className="mr-1" />
-                            Edit
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                    <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <h3 className="text-sm font-medium text-gray-500">Front</h3>
-                        {editing === idx ? (
-                          <Input
-                            value={editValues.front}
-                            onChange={(e) => setEditValues({ ...editValues, front: e.target.value })}
-                            placeholder="Card front"
-                          />
-                        ) : (
-                          <p className="p-3 bg-gray-50 rounded">{card.front}</p>
-                        )}
-                      </div>
-                      <div className="space-y-2">
-                        <h3 className="text-sm font-medium text-gray-500">Back</h3>
-                        {editing === idx ? (
-                          <Input
-                            value={editValues.back}
-                            onChange={(e) => setEditValues({ ...editValues, back: e.target.value })}
-                            placeholder="Card back"
-                          />
-                        ) : (
-                          <p className="p-3 bg-gray-50 rounded">{card.back}</p>
-                        )}
-                      </div>
-                    </div>
+              <div className="flex justify-between items-center mb-6">
+                <div className="inline-flex rounded-md shadow-sm">
+                  <Button
+                    variant={listViewMode === 'original' ? 'default' : 'outline'}
+                    className="rounded-r-none"
+                    onClick={() => setListViewMode('original')}
+                  >
+                    <List className="mr-2" size={16} />
+                    Original Order
+                  </Button>
+                  <Button
+                    variant={listViewMode === 'spaced' ? 'default' : 'outline'}
+                    className="rounded-l-none"
+                    onClick={() => setListViewMode('spaced')}
+                  >
+                    <BarChart2 className="mr-2" size={16} />
+                    Spaced Repetition
+                  </Button>
+                </div>
+                {/* mastery stats are only shown in spaced rep view*/}
+                {listViewMode === 'spaced' && (
+                  <div className="flex gap-4 text-sm">
+                    <span className="flex items-center">
+                      <span className="w-3 h-3 bg-green-500 rounded-full mr-2"></span>
+                      Mastered ({masteredCount})
+                    </span>
+                    <span className="flex items-center">
+                      <span className="w-3 h-3 bg-yellow-500 rounded-full mr-2"></span>
+                      Learning ({learningCount})
+                    </span>
+                    <span className="flex items-center">
+                      <span className="w-3 h-3 bg-gray-300 rounded-full mr-2"></span>
+                      Not Yet Learned ({notLearnedCount})
+                    </span>
                   </div>
-                ))}
+                )}
+              </div>
+
+              {/* display cards sectioin */}
+              <div className="space-y-6">
+                {listViewMode === 'original' ? (
+                  cards.map((card, idx) => (
+                    <div key={card._id} className="border rounded-lg shadow overflow-hidden">
+                      <div className="bg-gray-50 p-4 flex items-center justify-between">
+                        <div className="flex items-center">
+                          <span className="font-medium text-gray-700 mr-2">Card {idx + 1}</span>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="rounded-full p-1"
+                            onClick={() => {
+                              if (isSpeaking) {
+                                stopSpeaking();
+                              } else {
+                                speakCardContent(card, false, true);
+                              }
+                            }}
+                            disabled={editing === idx}
+                          >
+                            <Volume2 size={14} className={isSpeaking ? 'text-blue-600' : ''} />
+                          </Button>
+                        </div>
+                        
+                        <div className="flex space-x-2">
+                          {editing === idx ? (
+                            <>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={cancelEditing}
+                                disabled={isSaving}
+                              >
+                                <X size={16} className="mr-1" />
+                                Cancel
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                onClick={() => saveEditing(idx)}
+                                disabled={isSaving}
+                              >
+                                {isSaving ? "Saving..." : (
+                                  <>
+                                    <Check size={16} className="mr-1" />
+                                    Save
+                                  </>
+                                )}
+                              </Button>
+                            </>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => startEditing(idx)}
+                            >
+                              <Edit size={16} className="mr-1" />
+                              Edit
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                      <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-medium text-gray-500">Front</h3>
+                          {editing === idx ? (
+                            <Input
+                              value={editValues.front}
+                              onChange={(e) => setEditValues({ ...editValues, front: e.target.value })}
+                              placeholder="Card front"
+                            />
+                          ) : (
+                            <p className="p-3 bg-gray-50 rounded">{card.front}</p>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-medium text-gray-500">Back</h3>
+                          {editing === idx ? (
+                            <Input
+                              value={editValues.back}
+                              onChange={(e) => setEditValues({ ...editValues, back: e.target.value })}
+                              placeholder="Card back"
+                            />
+                          ) : (
+                            <p className="p-3 bg-gray-50 rounded">{card.back}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <>
+                    {/* mastered cards section */}
+                    {masteredCount > 0 && (
+                      <div className="mb-8">
+                        <h3 className="text-lg font-semibold mb-3 text-green-600 flex items-center">
+                          <span className="w-3 h-3 bg-green-500 rounded-full mr-2"></span>
+                          Mastered ({masteredCount})
+                        </h3>
+                        <div className="space-y-4">
+                          {cardsWithMastery
+                            .filter(card => card.masteryStatus === 'mastered')
+                            .map((card, idx) => (
+                              <div key={card._id} className={`border-l-4 ${getMasteryColorClass('mastered')} rounded-lg shadow overflow-hidden`}>
+                                <div className="bg-green-50 p-4 flex items-center">
+                                  <div className="flex items-center">
+                                    <span className="font-medium text-gray-700 mr-2">{card.front}</span>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      className="rounded-full p-1"
+                                      onClick={() => {
+                                        if (isSpeaking) {
+                                          stopSpeaking();
+                                        } else {
+                                          speakCardContent(card, false, true);
+                                        }
+                                      }}
+                                    >
+                                      <Volume2 size={14} className={isSpeaking ? 'text-blue-600' : ''} />
+                                    </Button>
+                                  </div>
+                                </div>
+                                <div className="p-5">
+                                  <h3 className="text-sm font-medium text-gray-500 mb-2">Answer</h3>
+                                  <p className="p-3 bg-green-50 rounded">{card.back}</p>
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* learning cards section */}
+                    {learningCount > 0 && (
+                      <div className="mb-8">
+                        <h3 className="text-lg font-semibold mb-3 text-yellow-600 flex items-center">
+                          <span className="w-3 h-3 bg-yellow-500 rounded-full mr-2"></span>
+                          Still Learning ({learningCount})
+                        </h3>
+                        <div className="space-y-4">
+                          {cardsWithMastery
+                            .filter(card => card.masteryStatus === 'learning')
+                            .map((card, idx) => (
+                              <div key={card._id} className={`border-l-4 ${getMasteryColorClass('learning')} rounded-lg shadow overflow-hidden`}>
+                                <div className="bg-yellow-50 p-4 flex items-center">
+                                  <div className="flex items-center">
+                                    <span className="font-medium text-gray-700 mr-2">{card.front}</span>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      className="rounded-full p-1"
+                                      onClick={() => {
+                                        if (isSpeaking) {
+                                          stopSpeaking();
+                                        } else {
+                                          speakCardContent(card, false, true);
+                                        }
+                                      }}
+                                    >
+                                      <Volume2 size={14} className={isSpeaking ? 'text-blue-600' : ''} />
+                                    </Button>
+                                  </div>
+                                </div>
+                                <div className="p-5">
+                                  <h3 className="text-sm font-medium text-gray-500 mb-2">Answer</h3>
+                                  <p className="p-3 bg-yellow-50 rounded">{card.back}</p>
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+
+
+                    {/* not learned cards section */}
+                    {notLearnedCount > 0 && (
+                      <div className="mb-8">
+                        <h3 className="text-lg font-semibold mb-3 text-gray-600 flex items-center">
+                          <span className="w-3 h-3 bg-gray-300 rounded-full mr-2"></span>
+                          Not Yet Learned ({notLearnedCount})
+                        </h3>
+                        <div className="space-y-4">
+                          {cardsWithMastery
+                            .filter(card => card.masteryStatus === 'not-learned')
+                            .map((card, idx) => (
+                              <div key={card._id} className={`border-l-4 ${getMasteryColorClass('not-learned')} rounded-lg shadow overflow-hidden`}>
+                                <div className="bg-gray-50 p-4 flex items-center">
+                                  <div className="flex items-center">
+                                    <span className="font-medium text-gray-700 mr-2">{card.front}</span>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      className="rounded-full p-1"
+                                      onClick={() => {
+                                        if (isSpeaking) {
+                                          stopSpeaking();
+                                        } else {
+                                          speakCardContent(card, false, true);
+                                        }
+                                      }}
+                                    >
+                                      <Volume2 size={14} className={isSpeaking ? 'text-blue-600' : ''} />
+                                    </Button>
+                                  </div>
+                                </div>
+                                <div className="p-5">
+                                  <h3 className="text-sm font-medium text-gray-500 mb-2">Answer</h3>
+                                  <p className="p-3 bg-gray-50 rounded">{card.back}</p>
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </div>
           )}
