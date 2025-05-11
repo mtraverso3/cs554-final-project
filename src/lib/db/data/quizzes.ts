@@ -4,11 +4,12 @@ import {
   QuizEntrySchema,
   QuizAttempt,
   QuizAttemptSchema,
-  QuizEntry,
+  QuizEntry, User,
 } from "@/lib/db/data/schema";
 import { ObjectId } from "mongodb";
 import {quizzes} from "@/lib/db/config/mongoCollections";
 import { getUserById } from "@/lib/db/data/users";
+import {authenticateUser} from "@/lib/auth/auth";
 
 export async function createQuiz(
   name: string,
@@ -112,6 +113,48 @@ export async function getQuizzesByUserId(
     throw new Error("Decks not found");
   }
   return quizList;
+}
+export async function updateQuiz(
+    quizId: string,
+    userId: string,
+    name: string,
+    description: string,
+    questions: QuizEntry[]
+): Promise<string> {
+  try {
+    const quiz: Quiz = await getQuizById(quizId);
+    if (!quiz.ownerId.equals(new ObjectId(userId))) {
+      throw new Error("Not authorized to update this quiz");
+    }
+
+    const questionsList: QuizEntry[] = questions.map(question => ({
+      question: question.question,
+      answers: question.answers.map(answer => ({
+        answer: answer.answer,
+        isCorrect: answer.isCorrect,
+      }))
+    }));
+
+    const quizzesCollection = await quizzes();
+    await quizzesCollection.updateOne(
+        { _id: new ObjectId(quizId) },
+        {
+          $set: {
+            name,
+            description,
+            questionsList
+          }
+        }
+    );
+
+    return JSON.stringify({ success: true });
+  } catch (error) {
+    console.error("Error updating deck:", error);
+    return JSON.stringify({
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
 }
 
 export async function addQuizAttempt(quizId: string, userId: string, score: number): Promise<QuizAttempt> {
