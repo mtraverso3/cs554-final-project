@@ -47,7 +47,7 @@ async function getDeck(id: string): Promise<Deck> {
 export default async function ViewDeckPage({
   params,
 }: {
-  params: Promise<{ deckId: string }>;
+  params: { deckId: string };
 }) {
   const { deckId } = await params;
   try {

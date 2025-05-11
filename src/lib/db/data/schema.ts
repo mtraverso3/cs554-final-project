@@ -27,7 +27,6 @@ export const FlashcardInputSchema = Yup.object({
     .trim()
     .required("Back text is required")
     .min(1, "Must be non-empty"),
-  deckId: ObjectIdSchema.required("deckId is required"),
 });
 export const FlashcardSchema = yup.object({
   _id: ObjectIdSchema.required(),
@@ -46,33 +45,27 @@ export type Flashcard = InferType<typeof FlashcardSchema>;
 
 export const DeckInputSchema = Yup.object({
   name: Yup.string()
-    .trim()
-    .required("Name is required")
-    .min(1, "Must be a non-empty string"),
+      .trim()
+      .required("Name is required")
+      .min(3, "Name must be at least 3 characters")
+      .max(25, "Name must be at most 25 characters")
+      .matches(/[a-zA-Z]/, "Name must include at least one letter (not just numbers)"),
+
   description: Yup.string()
-    .trim()
-    .required("Description is required")
-    .min(1, "Must be a non-empty string"),
-  ownerId: ObjectIdSchema.required("User is required"),
+      .trim()
+      .required("Description is required")
+      .min(10, "Description must be at least 10 characters")
+      .max(256, "Description must be at most 256 characters")
+      .matches(/[a-zA-Z]/, "Description must contain letters"),
   flashcardList: Yup.array()
-    .of(FlashcardSchema)
+    .of(FlashcardInputSchema)
     .required("Flashcards must be an array"),
-  createdAt: Yup.date()
-    .required("CreatedAt is required")
-    .default(() => new Date()),
-  lastStudied: Yup.date()
-    .required("lastStudied is required")
-    .default(() => new Date()),
   category: Yup.string()
-    .trim()
-    .required("Category is required")
-    .min(1, "Must be a non-empty string"),
-  likes: Yup.array()
-    .of(ObjectIdSchema)
-    .default([]),
-  comments: Yup.array()
-    .of(CommentSchema)
-    .default([]),
+      .trim()
+      .required("Category is required")
+      .min(2, "Category must be at least 2 characters")
+      .max(50, "Category must be at most 50 characters")
+      .matches(/^[A-Za-z]+$/, "Category must contain only letters"),
 
 });
 
