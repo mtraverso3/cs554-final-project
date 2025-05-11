@@ -5,177 +5,429 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2 } from "lucide-react";
-import { updateDeck } from "@/lib/deckForms";
+import { Plus, Trash2, X, Check, ArrowLeft, AlertCircle, HelpCircle } from "lucide-react";
+import { updateQuiz } from "@/lib/quizForms";
 import { useRouter } from "next/navigation";
-import {QuizEntry, Quiz} from "@/lib/db/data/schema";
-import {updateQuiz} from "@/lib/quizForms";
+import Link from "next/link";
 
+type QuizAnswer = {
+  answer: string;
+  isCorrect: boolean;
+};
 
-export default function EditDeckForm({ quiz }: { quiz: Quiz }) {
-    const router = useRouter();
-    const [name, setName] = useState(quiz.name);
-    const [description, setDescription] = useState(quiz.description);
-    const [questions, setQuestions] = useState<QuizEntry[]>(
-        quiz.questionsList.map(question =>
-            ({ question: question.question, answers: question.answers.map(answer =>
-                    ({answer: answer.answer, isCorrect: answer.isCorrect}))
-            }))
-    );
-    const [saving, setSaving] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const addAnswer = () => ({ answer: "", isCorrect: false });
-    const addCard= () => setQuestions(prev => [...prev, { question: "", answers: [addAnswer()] }]);
+type QuizQuestion = {
+  question: string;
+  answers: QuizAnswer[];
+};
 
-    const updateCard = (index: number, field: keyof QuizEntry, value: string) => {
-        setQuestions(prevQuestions => {
-            const newQuestions = [...prevQuestions];
-            newQuestions[index] = { ...newQuestions[index], [field]: value };
-            return newQuestions;
-        });
-    };
+type QuizDTO = {
+  _id: string;
+  ownerId: string;
+  name: string;
+  description: string;
+  category: string;
+  createdAt: string;
+  lastStudied: string;
+  questionsList: QuizQuestion[];
+};
 
-    const removeCard = (index: number) => {
-        setQuestions(prevQuestions => prevQuestions.filter((_, i) => i !== index));
-    };
+export default function EditQuizForm({ quiz }: { quiz: QuizDTO }) {
+  const router = useRouter();
+  const [name, setName] = useState(quiz.name);
+  const [description, setDescription] = useState(quiz.description);
+  const [category, setCategory] = useState(quiz.category);
+  const [questions, setQuestions] = useState<QuizQuestion[]>(
+    quiz.questionsList.length > 0
+      ? quiz.questionsList.map(question => ({
+          question: question.question,
+          answers: question.answers.map(answer => ({
+            answer: answer.answer,
+            isCorrect: answer.isCorrect
+          }))
+        }))
+      : [{
+          question: "",
+          answers: [
+            { answer: "", isCorrect: false },
+            { answer: "", isCorrect: false },
+            { answer: "", isCorrect: false },
+            { answer: "", isCorrect: false }
+          ]
+        }]
+  );
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
 
-    const handleSave = async () => {
-        setSaving(true);
-        setError(null);
+  const addQuestion = () => {
+    setQuestions(prev => [
+      ...prev,
+      {
+        question: "",
+        answers: [
+          { answer: "", isCorrect: false },
+          { answer: "", isCorrect: false },
+          { answer: "", isCorrect: false },
+          { answer: "", isCorrect: false }
+        ]
+      }
+    ]);
+  };
 
-        try {
-            const result = await updateQuiz(
-                quiz._id.toString(),
-                name,
-                description,
-                questions
-            );
+  const addAnswerOption = (questionIndex: number) => {
+    const updatedQuestions = [...questions];
+    updatedQuestions[questionIndex].answers.push({ answer: "", isCorrect: false });
+    setQuestions(updatedQuestions);
+  };
 
-            const parsedResult = JSON.parse(result);
+  const removeAnswerOption = (questionIndex: number, answerIndex: number) => {
+    const updatedQuestions = [...questions];
+    if (updatedQuestions[questionIndex].answers.length <= 2) {
+      return;
+    }
+    updatedQuestions[questionIndex].answers.splice(answerIndex, 1);
+    setQuestions(updatedQuestions);
+  };
 
-            if (parsedResult.success) {
-                router.push('/user/quiz-library');
-            } else {
-                setError(parsedResult.error || "Failed to save changes");
-            }
-        } catch (error) {
-            console.error("Error saving quiz:", error);
-            setError("An unexpected error occurred");
-        } finally {
-            setSaving(false);
+  const removeQuestion = (index: number) => {
+    setQuestions(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleQuestionChange = (index: number, value: string) => {
+    const updatedQuestions = [...questions];
+    updatedQuestions[index].question = value;
+    setQuestions(updatedQuestions);
+  };
+
+  const handleAnswerChange = (questionIndex: number, answerIndex: number, value: string) => {
+    const updatedQuestions = [...questions];
+    updatedQuestions[questionIndex].answers[answerIndex].answer = value;
+    setQuestions(updatedQuestions);
+  };
+
+  const toggleCorrectAnswer = (questionIndex: number, answerIndex: number) => {
+    const updatedQuestions = [...questions];
+    updatedQuestions[questionIndex].answers[answerIndex].isCorrect =
+      !updatedQuestions[questionIndex].answers[answerIndex].isCorrect;
+    setQuestions(updatedQuestions);
+  };
+
+  const validateForm = (): boolean => {
+    if (!name.trim()) {
+      setError("Quiz name is required");
+      return false;
+    }
+
+    if (!description.trim()) {
+      setError("Quiz description is required");
+      return false;
+    }
+
+    if (!category.trim()) {
+      setError("Category is required");
+      return false;
+    }
+
+    if (questions.length === 0) {
+      setError("At least one question is required");
+      return false;
+    }
+
+    for (let i = 0; i < questions.length; i++) {
+      const question = questions[i];
+
+      if (!question.question.trim()) {
+        setError(`Question ${i + 1} text is required`);
+        return false;
+      }
+
+      if (question.answers.length < 2) {
+        setError(`Question ${i + 1} must have at least 2 answers`);
+        return false;
+      }
+
+      for (let j = 0; j < question.answers.length; j++) {
+        if (!question.answers[j].answer.trim()) {
+          setError(`Answer ${j + 1} for question ${i + 1} is required`);
+          return false;
         }
-    };
+      }
 
-    return (
-        <div className="space-y-6 px-4 py-6">
-            {error && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-                    <span className="block sm:inline">{error}</span>
-                </div>
-            )}
+      const hasCorrectAnswer = question.answers.some(answer => answer.isCorrect);
+      if (!hasCorrectAnswer) {
+        setError(`Question ${i + 1} must have at least one correct answer`);
+        return false;
+      }
+    }
 
-            {/* Name */}
-            <div className="flex items-center gap-2">
-                <Input
-                    className="flex-1"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Deck Name"
-                />
-            </div>
+    return true;
+  };
 
-            {/* Description */}
-            <div className="flex items-start gap-2">
-                <Textarea
-                    className="flex-1 resize-y"
-                    rows={3}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Deck Description"
-                />
-            </div>
+  const handleSave = async () => {
+    if (!validateForm()) {
+      return;
+    }
 
-            {/* Questions grid */}
-            <div className="grid grid-cols-1 gap-6">
-                {questions.map((q, qIdx) => (
-                    <Card key={qIdx} className="relative space-y-2 p-4">
-                        <Input
-                            placeholder="Enter question"
-                            value={q.question}
-                            onChange={(e) => {
-                                const updated = [...questions];
-                                updated[qIdx].question = e.target.value;
-                                setQuestions(updated);
-                            }}
-                        />
+    setSaving(true);
+    setError(null);
 
-                        {q.answers.map((a, aIdx) => (
-                            <div key={aIdx} className="flex items-center gap-2">
-                                <Input
-                                    placeholder="Answer"
-                                    value={a.answer}
-                                    onChange={(e) => {
-                                        const updated = [...questions];
-                                        updated[qIdx].answers[aIdx].answer = e.target.value;
-                                        setQuestions(updated);
-                                    }}
-                                />
-                                <label className="flex items-center gap-1">
-                                    <input
-                                        type="checkbox"
-                                        checked={a.isCorrect}
-                                        onChange={() => {
-                                            const updated = [...questions];
-                                            updated[qIdx].answers[aIdx].isCorrect = !updated[qIdx].answers[aIdx].isCorrect;
-                                            setQuestions(updated);
-                                        }}
-                                    />
-                                    Correct
-                                </label>
-                            </div>
-                        ))}
+    try {
+      const result = await updateQuiz(
+        quiz._id,
+        name,
+        description,
+        questions
+      );
 
-                        <div className="flex gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                    const updated = [...questions];
-                                    updated[qIdx].answers.push({ answer: "", isCorrect: false });
-                                    setQuestions(updated);
-                                }}
-                            >
-                                Add Answer
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="absolute top-2 right-2 h-6 w-6"
-                                onClick={() => {
-                                    setQuestions(prev => prev.filter((_, i) => i !== qIdx));
-                                }}
-                            >
-                                <Trash2 size={16} />
-                            </Button>
-                        </div>
-                    </Card>
-                ))}
+      const parsedResult = JSON.parse(result);
 
-                <div
-                    onClick={addCard}
-                    className="flex cursor-pointer flex-col items-center justify-center rounded border-2 border-dashed py-8 text-gray-400 hover:border-gray-300 hover:text-gray-500 transition-colors"
-                >
-                    <Plus size={24} />
-                    <span className="mt-2">Add Question</span>
-                </div>
-            </div>
+      if (parsedResult.success) {
+        router.push(`/user/quiz-library/${quiz._id}`);
+      } else {
+        setError(parsedResult.error || "Failed to save changes");
+      }
+    } catch (error) {
+      console.error("Error saving quiz:", error);
+      setError("An unexpected error occurred");
+    } finally {
+      setSaving(false);
+    }
+  };
 
-            {/* Save button */}
-            <div className="flex justify-end">
-                <Button disabled={saving} onClick={handleSave}>
-                    {saving ? "Saving…" : "Save Changes"}
-                </Button>
-            </div>
+  return (
+    <div className="container mx-auto py-8 px-4">
+      <div className="flex items-center justify-between mb-6">
+        <Link href={`/user/quiz-library/${quiz._id}`} className="flex items-center text-gray-600 hover:text-gray-900">
+          <Button variant="outline">
+            <ArrowLeft className="mr-2" size={16} />
+            Back to Quiz
+          </Button>
+        </Link>
+
+        <h1 className="text-2xl font-bold">Edit Quiz</h1>
+
+        <Button
+          onClick={() => setShowHelp(!showHelp)}
+          variant="outline"
+          className="flex items-center"
+        >
+          <HelpCircle className="mr-2" size={16} />
+          {showHelp ? "Hide Help" : "Show Help"}
+        </Button>
+      </div>
+
+      {showHelp && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <h3 className="font-medium text-blue-700 mb-2 flex items-center">
+            <HelpCircle className="mr-2" size={16} />
+            Quiz Editing Help
+          </h3>
+          <ul className="list-disc pl-5 text-blue-700 space-y-1 text-sm">
+            <li>Every question must have at least 2 answer options</li>
+            <li>Each question must have at least one correct answer</li>
+            <li>You can mark multiple answers as correct for a single question</li>
+            <li>Users will need to select all correct answers to get full credit for a question</li>
+            <li>To delete an answer option, click the X button next to it (minimum 2 required)</li>
+            <li>To delete an entire question, click the trash icon in the top-right corner</li>
+          </ul>
         </div>
-    );
+      )}
+
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6" role="alert">
+          <div className="flex items-center">
+            <AlertCircle className="mr-2" size={18} />
+            <span className="block sm:inline">{error}</span>
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-6">
+        {/* Quiz Details */}
+        <Card>
+          <CardContent className="pt-6">
+            <h2 className="text-xl font-semibold mb-4">Quiz Details</h2>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Quiz Name*
+                </label>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Enter quiz name"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description*
+                </label>
+                <Textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Enter quiz description"
+                  rows={3}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Category*
+                </label>
+                <Input
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  placeholder="Enter quiz category (e.g., Math, Science, History)"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Questions */}
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Questions</h2>
+
+          <div className="space-y-6">
+            {questions.map((question, qIndex) => (
+              <Card key={qIndex}>
+                <CardContent className="pt-6 relative">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute top-2 right-2 text-gray-500 hover:text-red-500"
+                    onClick={() => removeQuestion(qIndex)}
+                  >
+                    <Trash2 size={16} />
+                  </Button>
+
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Question {qIndex + 1}*
+                    </label>
+                    <Input
+                      value={question.question}
+                      onChange={(e) => handleQuestionChange(qIndex, e.target.value)}
+                      placeholder="Enter your question"
+                    />
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Answer Options*
+                    </label>
+
+                    <div className="space-y-3">
+                      {question.answers.map((answer, aIndex) => (
+                        <div key={aIndex} className="flex items-start gap-2">
+                          <div className="flex-1">
+                            <Input
+                              value={answer.answer}
+                              onChange={(e) => handleAnswerChange(qIndex, aIndex, e.target.value)}
+                              placeholder={`Answer option ${aIndex + 1}`}
+                            />
+                          </div>
+
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              type="button"
+                              variant={answer.isCorrect ? "default" : "outline"}
+                              size="sm"
+                              className={`min-w-[100px] ${answer.isCorrect ? 'bg-green-600 hover:bg-green-700' : ''}`}
+                              onClick={() => toggleCorrectAnswer(qIndex, aIndex)}
+                            >
+                              {answer.isCorrect ? (
+                                <>
+                                  <Check className="mr-1" size={16} />
+                                  Correct
+                                </>
+                              ) : (
+                                "Mark Correct"
+                              )}
+                            </Button>
+
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="text-gray-500 hover:text-red-500"
+                              onClick={() => removeAnswerOption(qIndex, aIndex)}
+                              disabled={question.answers.length <= 2}
+                            >
+                              <X size={16} />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center mt-4">
+                    <div className="text-sm text-gray-500">
+                      {question.answers.filter(a => a.isCorrect).length > 1 && (
+                        <span className="text-blue-500">
+                          Multiple correct answers allowed
+                        </span>
+                      )}
+                    </div>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => addAnswerOption(qIndex)}
+                    >
+                      <Plus className="mr-1" size={16} />
+                      Add Answer
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+
+            <Button
+              variant="outline"
+              className="w-full py-6 border-dashed"
+              onClick={addQuestion}
+            >
+              <Plus className="mr-2" size={16} />
+              Add Question
+            </Button>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex justify-between pt-4">
+          <Button
+            variant="outline"
+            asChild
+          >
+            <Link href={`/user/quiz-library/${quiz._id}`}>
+              Cancel
+            </Link>
+          </Button>
+
+          <Button
+            onClick={handleSave}
+            disabled={saving}
+            className="px-6"
+          >
+            {saving ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Saving...
+              </>
+            ) : (
+              "Save Quiz"
+            )}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
 }

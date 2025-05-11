@@ -3,7 +3,8 @@
 import { getQuizById } from "@/lib/db/data/quizzes";
 import { authenticateUser } from "@/lib/auth/auth";
 import { Quiz, User, QuizEntry } from "@/lib/db/data/schema";
-import QuizView from "./QuizView";
+import { unauthorized } from "next/navigation";
+import QuizStudy from "./QuizStudy";
 
 function serializeQuiz(quiz: Quiz) {
   return {
@@ -25,7 +26,6 @@ function serializeQuiz(quiz: Quiz) {
 }
 
 async function getQuiz(id: string): Promise<Quiz> {
-  "use server";
   const userObject: User = await authenticateUser();
 
   const quiz: Quiz = await getQuizById(id);
@@ -37,24 +37,31 @@ async function getQuiz(id: string): Promise<Quiz> {
   return quiz;
 }
 
-export default async function ViewQuizPage({
+export default async function StudyPage({
   params,
 }: {
   params: Promise<{ quizId: string }> | { quizId: string };
 }) {
   try {
     const quizId = params instanceof Promise ? (await params).quizId : params.quizId;
-    
     const quiz: Quiz = await getQuiz(quizId);
-    return <QuizView quiz={serializeQuiz(quiz)} />;
+    
+    quiz.lastStudied = new Date();
+
+    return <QuizStudy quiz={serializeQuiz(quiz)} />;
   } catch (error) {
     if (error instanceof Error) {
-      return (
-        <div className="p-8 text-center">
-          <h1 className="text-2xl font-bold text-red-600">Error</h1>
-          <p className="mt-4">{error.message}</p>
-        </div>
-      );
+      if (error.message === "Not Authorized") {
+        unauthorized();
+      } else {
+        console.error(error);
+        return (
+          <div className="p-8 text-center">
+            <h1 className="text-2xl font-bold text-red-600">Error</h1>
+            <p className="mt-4">{error.message}</p>
+          </div>
+        );
+      }
     }
     return (
       <div className="p-8 text-center">
