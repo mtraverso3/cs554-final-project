@@ -21,6 +21,11 @@ function serializeQuiz(quiz: Quiz) { //ugh we can't sent complex objects to the 
                 isCorrect: answer.isCorrect,
             }))
         })),
+        attempts: quiz.attempts.map((attempt) => ({
+            userId: attempt.userId.toString(),
+            score: attempt.score,
+            date: attempt.date ? attempt.date.toISOString() : new Date().toISOString(),
+        })),
     };
 }
 
