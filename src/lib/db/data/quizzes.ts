@@ -124,7 +124,7 @@ export async function updateQuiz(
   try {
     const quiz: Quiz = await getQuizById(quizId);
     if (!quiz.ownerId.equals(new ObjectId(userId))) {
-      throw new Error("Not authorized to update this deck");
+      throw new Error("Not authorized to update this quiz");
     }
 
     const questionsList: QuizEntry[] = questions.map(question => ({
