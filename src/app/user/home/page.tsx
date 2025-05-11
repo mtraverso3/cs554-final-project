@@ -234,6 +234,11 @@ export default function UserHome() {
               New Quiz
             </Link>
           </Button>
+          <Button asChild>
+            <Link href="/user/profile">
+              My Profile
+            </Link>
+          </Button>
         </div>
       </div>
 
