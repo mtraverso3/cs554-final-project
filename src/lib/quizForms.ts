@@ -1,7 +1,6 @@
 "use server";
 
-import { authenticateUser, auth0 } from "@/lib/auth/auth";
-import * as users from "@/lib/db/data/users";
+import { authenticateUser } from "@/lib/auth/auth";
 import * as decks from "@/lib/db/data/decks";
 import { Quiz, User, QuizEntry, Deck } from "@/lib/db/data/schema";
 import * as quizzes from "@/lib/db/data/quizzes";
@@ -10,29 +9,6 @@ import { deckToQuiz } from "@/lib/ollama/ollama";
 
 export async function createFlashcard(front: string, back: string) {
   console.log(front, back);
-}
-
-export async function signup(first: string, last: string): Promise<User> {
-  const session = await auth0.getSession();
-
-  const userObject = session?.user;
-
-  if (!userObject || !userObject.email || !userObject.sub) {
-    throw new Error("User missing email or sub");
-  }
-
-  const user: User = await users.createUser(
-    userObject.email,
-    userObject.sub,
-    first,
-    last,
-  );
-
-  console.log(
-    `User "${user.firstName} ${user.lastName}" created successfully.`,
-  );
-
-  return user;
 }
 
 export async function addDeck(

@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { auth0 } from "@/lib/auth/auth";
 import * as users from "@/lib/db/data/users";
 import { OnboardingPage } from "@/components/onboardingPage";
-import { signup } from "@/lib/quizForms";
 import { User } from "@/lib/db/data/schema";
 
 export async function Layout({ children }: { children: React.ReactNode }) {
@@ -19,13 +18,19 @@ export async function Layout({ children }: { children: React.ReactNode }) {
   let user: User;
   try {
     user = await users.getUserBySub(userObject?.sub);
-  } catch {
-    if (userObject.given_name && userObject.family_name) {
-      user = await signup(userObject.given_name, userObject.family_name);
-    } else {
-      return <OnboardingPage />;
-    }
   }
+   catch {
+      let firstName = "";
+      if(userObject.given_name) {
+        firstName = userObject.given_name;
+      }
+      let lastName = "";
+      if(userObject.family_name) {
+        lastName = userObject.family_name;
+      }
+      return <OnboardingPage data={{firstName: firstName, lastName: lastName}}/>;
+    }
+  
 
   return (
     <SidebarProvider>

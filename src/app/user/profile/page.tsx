@@ -6,8 +6,10 @@ import Link from "next/link";
 export default async function UserProfile() {
     const theData = await getUserData();
     const data = JSON.parse(theData);
+    console.log("This one does not work");
+    console.log(data.profilePicture["file"]);
     //The image is not working at all
-    return <><Image width = "200" height = "150" src = "/noimage.jpeg" alt = "/noimage.jpeg"/>
+    return <><Image width = "200" height = "150" src = {data.profilePicture["file"]} alt = {data.profilePicture["file"]}/>
     <div>Full Name: {data.firstName} {data.lastName}</div>
     <div>Email: {data.email}</div>
     <Button asChild>

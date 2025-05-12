@@ -137,6 +137,9 @@ export const UserSchema = yup.object({
     .email("Invalid email")
     .required("Email is required"),
   sub: yup.string().trim().required("Sub is required"),
+  profilePicture: yup.object().shape({
+    file: Yup.mixed().required('File is required'),
+})
 });
 export type UserInput = Yup.InferType<typeof UserInputSchema>;
 export type User = InferType<typeof UserSchema>;

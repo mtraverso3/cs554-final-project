@@ -7,8 +7,8 @@ export async function createUser(
   sub: string,
   firstName: string,
   lastName: string,
+  profilePicture: File,
 ): Promise<User> {
-
   const userCollection = await users();
   const existingUser = await userCollection.findOne({ sub: sub.trim() });
   if (existingUser) {
@@ -21,6 +21,7 @@ export async function createUser(
     lastName,
     email,
     sub,
+    profilePicture: {"file": profilePicture}
   };
   newUser = await UserSchema.validate(newUser);
 
@@ -58,11 +59,12 @@ export async function getUserBySub(sub: string): Promise<User> {
   return foundUser;
 }
 
-export async function updateUser(id: string, firstName: string, lastName: string) {
+export async function updateUser(id: string, firstName: string, lastName: string, profilePicture: File) {
   const theUsers = await users();
   const theUser = await getUserById(id);
   theUser.firstName = firstName;
   theUser.lastName = lastName;
+  theUser.profilePicture = {"file": profilePicture};
     const theInfo = await theUsers.findOneAndUpdate(
     { _id: new ObjectId(id) },
     { $set: theUser },
