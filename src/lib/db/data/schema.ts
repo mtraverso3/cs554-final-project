@@ -1,10 +1,11 @@
 import * as Yup from "yup";
-import { ObjectId } from "mongodb";
-import { InferType } from "yup";
 import * as yup from "yup";
+import { InferType } from "yup";
+import { ObjectId } from "mongodb";
 
-
-const ObjectIdSchema = yup.mixed((value): value is ObjectId => ObjectId.isValid(value))
+const ObjectIdSchema = yup.mixed((value): value is ObjectId =>
+  ObjectId.isValid(value),
+);
 
 export const CommentSchema = Yup.object({
   ownerId: ObjectIdSchema.required("User is required"),
@@ -17,7 +18,6 @@ export const CommentSchema = Yup.object({
     .default(() => new Date()),
 });
 export type Comment = Yup.InferType<typeof CommentSchema>;
-
 
 export const FlashcardSchema = yup.object({
   _id: ObjectIdSchema.required(),
@@ -33,7 +33,6 @@ export const FlashcardSchema = yup.object({
 });
 export type Flashcard = InferType<typeof FlashcardSchema>;
 
-
 export const StudyProgressSchema = Yup.object({
   currentCardIndex: Yup.number().default(0),
   knownCardIds: Yup.array().of(Yup.string().defined()).default([]),
@@ -42,7 +41,7 @@ export const StudyProgressSchema = Yup.object({
   studyTime: Yup.number().default(0),
   isReviewMode: Yup.boolean().default(false),
   isCompleted: Yup.boolean().default(false),
-  reviewingCardIds: Yup.array().of(Yup.string().defined()).default([])
+  reviewingCardIds: Yup.array().of(Yup.string().defined()).default([]),
 });
 
 export type StudyProgress = Yup.InferType<typeof StudyProgressSchema>;
@@ -76,7 +75,7 @@ export const DeckSchema = yup.object({
     knownCardIds: [],
     unknownCardIds: [],
     lastPosition: 0,
-    studyTime: 0
+    studyTime: 0,
   })),
   likes: Yup.array()
     .of(ObjectIdSchema.required())
@@ -86,9 +85,7 @@ export const DeckSchema = yup.object({
     .of(CommentSchema)
     .default([])
     .required("Comments must be an array"),
-  published: Yup.boolean()
-    .default(false)
-    .required("Public is required"),
+  published: Yup.boolean().default(false).required("Public is required"),
 });
 
 export type Deck = Yup.InferType<typeof DeckSchema>;
@@ -134,7 +131,6 @@ export type UserInput = Yup.InferType<typeof UserInputSchema>;
 export type User = InferType<typeof UserSchema>;
 
 export const QuizEntrySchema = Yup.object({
-
   question: Yup.string()
     .trim()
     .required("Question is required")
@@ -167,8 +163,6 @@ export const QuizAttemptSchema = Yup.object({
 });
 export type QuizAttempt = Yup.InferType<typeof QuizAttemptSchema>;
 
-
-
 export const QuizSchema = yup.object({
   _id: ObjectIdSchema.required(),
   name: Yup.string()
@@ -181,19 +175,19 @@ export const QuizSchema = yup.object({
     .min(1, "Must be a non-empty string"),
   ownerId: ObjectIdSchema.required("User is required"),
   createdAt: Yup.date()
-      .required("CreatedAt is required")
-      .default(() => new Date()),
+    .required("CreatedAt is required")
+    .default(() => new Date()),
   lastStudied: Yup.date()
     .required("lastStudied is required")
     .default(() => new Date()),
   questionsList: Yup.array()
     .of(QuizEntrySchema)
     .required("Questions are required"),
-  attempts: Yup.array()
-    .of(QuizAttemptSchema).required("Attempts are required"),
+  attempts: Yup.array().of(QuizAttemptSchema).required("Attempts are required"),
   category: Yup.string()
     .trim()
     .required("Category is required")
     .min(1, "Must be a non-empty string"),
+  published: Yup.boolean().default(false).required("Public is required"),
 });
 export type Quiz = InferType<typeof QuizSchema>;

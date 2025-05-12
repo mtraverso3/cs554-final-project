@@ -136,7 +136,7 @@ export function deserializeDeck(serialized: string): Deck {
       studyTime: data.studyProgress.studyTime,
       unknownCardIds: data.studyProgress.unknownCardIds,
     },
-    published: data.published
+    published: data.published,
   };
 }
 
@@ -168,18 +168,38 @@ export function serializeQuiz2(quiz: Quiz) {
     name: quiz.name,
     description: quiz.description,
     category: quiz.category,
-    createdAt: quiz.createdAt ? quiz.createdAt.toISOString() : new Date().toISOString(),
-    lastStudied: quiz.lastStudied ? quiz.lastStudied.toISOString() : new Date().toISOString(),
+    createdAt: quiz.createdAt
+      ? quiz.createdAt.toISOString()
+      : new Date().toISOString(),
+    lastStudied: quiz.lastStudied
+      ? quiz.lastStudied.toISOString()
+      : new Date().toISOString(),
     questionsList: quiz.questionsList.map((question: QuizEntry) => ({
       question: question.question,
       answers: question.answers.map((answer) => ({
         answer: answer.answer,
         isCorrect: answer.isCorrect,
-      }))
+      })),
     })),
   };
 }
 
+export type serializedQuiz = {
+  _id: string;
+  ownerId: string;
+  name: string;
+  description: string;
+  category: string;
+  createdAt: string;
+  lastStudied: string;
+  questionsList: {
+    question: string;
+    answers: {
+      answer: string;
+      isCorrect: boolean;
+    }[];
+  }[];
+};
 
 export function deserializeQuiz(cached: string): Quiz {
   const raw = JSON.parse(cached) as {
@@ -188,6 +208,7 @@ export function deserializeQuiz(cached: string): Quiz {
     name: string;
     description: string;
     category: string;
+    published: boolean;
     createdAt: string;
     lastStudied: string;
     attempts: {

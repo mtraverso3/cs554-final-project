@@ -1,13 +1,13 @@
 "use server";
 
-import { authenticateUser, auth0 } from "@/lib/auth/auth";
+import { auth0, authenticateUser } from "@/lib/auth/auth";
 import * as users from "@/lib/db/data/users";
 import * as decks from "@/lib/db/data/decks";
-import {Quiz, User, QuizEntry, Deck} from "@/lib/db/data/schema";
-import * as quizzes from "@/lib/db/data/quizzes";
 import { getDeckById } from "@/lib/db/data/decks";
-import { deckToQuiz } from "@/lib/ollama/ollama";
+import { Deck, Quiz, QuizEntry, User } from "@/lib/db/data/schema";
+import * as quizzes from "@/lib/db/data/quizzes";
 import { getQuizById } from "@/lib/db/data/quizzes";
+import { deckToQuiz } from "@/lib/ollama/ollama";
 
 export async function createFlashcard(front: string, back: string) {
   console.log(front, back);
@@ -41,11 +41,17 @@ export async function getQuiz(id: string): Promise<Quiz> {
 
   const quiz: Quiz = await getQuizById(id);
 
-  if (!quiz.ownerId.equals(userObject._id)) {
+  if (!quiz.ownerId.equals(userObject._id) && !quiz.published) {
     throw new Error("Not Authorized");
   }
 
   return quiz;
+}
+
+export async function getPublicQuizzes(): Promise<Quiz[]> {
+  await authenticateUser();
+
+  return quizzes.getPublicQuizzes();
 }
 
 export async function addDeck(
@@ -65,7 +71,13 @@ export async function addDeck(
   );
 }
 
-export async function addQuiz(name: string, description: string, category: string, questionsList: QuizEntry[] = []) {
+export async function addQuiz(
+  name: string,
+  description: string,
+  category: string,
+  published: boolean,
+  questionsList: QuizEntry[] = [],
+) {
   const userObject: User = await authenticateUser();
 
   await quizzes.createQuiz(
@@ -73,6 +85,7 @@ export async function addQuiz(name: string, description: string, category: strin
     description,
     category,
     userObject._id.toString(),
+    published,
     questionsList,
   );
 }
@@ -85,10 +98,10 @@ export async function getQuizzes(): Promise<string> {
   return JSON.stringify(quizList);
 }
 export async function updateQuiz(
-    quizId: string,
-    name: string,
-    description: string,
-    questions: QuizEntry[]
+  quizId: string,
+  name: string,
+  description: string,
+  questions: QuizEntry[],
 ): Promise<string> {
   const userObject: User = await authenticateUser();
   const userId = userObject._id.toString();

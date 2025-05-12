@@ -1,10 +1,9 @@
 "use server";
 
-import { getQuizById } from "@/lib/db/data/quizzes";
-import { authenticateUser } from "@/lib/auth/auth";
-import { Quiz, User, QuizEntry } from "@/lib/db/data/schema";
+import { Quiz, QuizEntry } from "@/lib/db/data/schema";
 import { unauthorized } from "next/navigation";
 import QuizStudy from "./QuizStudy";
+import { getQuiz } from "@/lib/quizForms";
 
 function serializeQuiz(quiz: Quiz) {
   return {
@@ -13,28 +12,20 @@ function serializeQuiz(quiz: Quiz) {
     name: quiz.name,
     description: quiz.description,
     category: quiz.category,
-    createdAt: quiz.createdAt ? quiz.createdAt.toISOString() : new Date().toISOString(),
-    lastStudied: quiz.lastStudied ? quiz.lastStudied.toISOString() : new Date().toISOString(),
+    createdAt: quiz.createdAt
+      ? quiz.createdAt.toISOString()
+      : new Date().toISOString(),
+    lastStudied: quiz.lastStudied
+      ? quiz.lastStudied.toISOString()
+      : new Date().toISOString(),
     questionsList: quiz.questionsList.map((question: QuizEntry) => ({
       question: question.question,
       answers: question.answers.map((answer) => ({
         answer: answer.answer,
         isCorrect: answer.isCorrect,
-      }))
+      })),
     })),
   };
-}
-
-async function getQuiz(id: string): Promise<Quiz> {
-  const userObject: User = await authenticateUser();
-
-  const quiz: Quiz = await getQuizById(id);
-
-  if (!quiz.ownerId.equals(userObject._id)) {
-    throw new Error("Not Authorized");
-  }
-
-  return quiz;
 }
 
 export default async function StudyPage({
@@ -43,9 +34,9 @@ export default async function StudyPage({
   params: Promise<{ quizId: string }>;
 }) {
   try {
-    const {quizId} = await params;
+    const { quizId } = await params;
     const quiz: Quiz = await getQuiz(quizId);
-    
+
     quiz.lastStudied = new Date();
 
     return <QuizStudy quiz={serializeQuiz(quiz)} />;

@@ -13,8 +13,6 @@ import * as Yup from "yup";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
-
-
 export default function EditDeckForm({ deck }: { deck: string }) {
   const parsedDeck = JSON.parse(deck);
 
@@ -24,15 +22,29 @@ export default function EditDeckForm({ deck }: { deck: string }) {
   const [category, setCategory] = useState(parsedDeck.category);
   const [published, setPublished] = useState(parsedDeck.published);
   const [cards, setCards] = useState<FlashcardInput[]>(
-    parsedDeck.flashcardList.map((card: {_id: string, front: string, back: string }) => ({ _id: parsedDeck._id, front: card.front, back: card.back }))
+    parsedDeck.flashcardList.map(
+      (card: { _id: string; front: string; back: string }) => ({
+        _id: parsedDeck._id,
+        front: card.front,
+        back: card.back,
+      }),
+    ),
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string[] | null>(null);
 
-  const addCard = () => setCards(prev => [...prev, { _id: "placeholderId", front: "", back: "" }]);
+  const addCard = () =>
+    setCards((prev) => [
+      ...prev,
+      { _id: "placeholderId", front: "", back: "" },
+    ]);
 
-  const updateCard = (index: number, field: keyof FlashcardInput, value: string) => {
-    setCards(prevCards => {
+  const updateCard = (
+    index: number,
+    field: keyof FlashcardInput,
+    value: string,
+  ) => {
+    setCards((prevCards) => {
       const newCards = [...prevCards];
       newCards[index] = { ...newCards[index], [field]: value };
       return newCards;
@@ -40,7 +52,7 @@ export default function EditDeckForm({ deck }: { deck: string }) {
   };
 
   const removeCard = (index: number) => {
-    setCards(prevCards => prevCards.filter((_, i) => i !== index));
+    setCards((prevCards) => prevCards.filter((_, i) => i !== index));
   };
 
   const handleSave = async () => {
@@ -52,6 +64,7 @@ export default function EditDeckForm({ deck }: { deck: string }) {
       description,
       category: parsedDeck.category, // assuming category is not editable
       flashcardList: cards,
+      published,
     };
 
     try {
@@ -65,20 +78,22 @@ export default function EditDeckForm({ deck }: { deck: string }) {
     }
 
     setSaving(true);
-    
+
     try {
-      const validCards = cards.filter(card => card.front.trim() !== '' || card.back.trim() !== '');
+      const validCards = cards.filter(
+        (card) => card.front.trim() !== "" || card.back.trim() !== "",
+      );
       const result = await updateDeck(
         parsedDeck._id.toString(),
         name,
         description,
-        validCards
+        validCards,
       );
-      
+
       const parsedResult = JSON.parse(result);
-      
+
       if (parsedResult.success) {
-        router.push('/user/flashcard-library');
+        router.push("/user/flashcard-library");
       } else {
         setError(parsedResult.error || "Failed to save changes");
       }
@@ -93,24 +108,25 @@ export default function EditDeckForm({ deck }: { deck: string }) {
   return (
     <div className="space-y-6 px-4 py-6">
       {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded space-y-1" role="alert">
-            {Array.isArray(error) ? (
-                <ul className="list-disc list-inside text-sm">
-                  {error.map((errMsg, idx) => (
-                      <li key={idx}>{errMsg}</li>
-                  ))}
-                </ul>
-            ) : (
-                <span className="block sm:inline">{error}</span>
-            )}
-          </div>
+        <div
+          className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded space-y-1"
+          role="alert"
+        >
+          {Array.isArray(error) ? (
+            <ul className="list-disc list-inside text-sm">
+              {error.map((errMsg, idx) => (
+                <li key={idx}>{errMsg}</li>
+              ))}
+            </ul>
+          ) : (
+            <span className="block sm:inline">{error}</span>
+          )}
+        </div>
       )}
-      
+
       {/* Name */}
       <div className="space-y-2">
-        <Label>
-          Deck Name
-        </Label>
+        <Label>Deck Name</Label>
         <Input
           className="flex-1"
           value={name}
@@ -121,9 +137,7 @@ export default function EditDeckForm({ deck }: { deck: string }) {
 
       {/* Description */}
       <div className="space-y-2">
-        <Label>
-          Description
-        </Label>
+        <Label>Description</Label>
         <Textarea
           className="flex-1 resize-y"
           rows={3}
@@ -135,38 +149,32 @@ export default function EditDeckForm({ deck }: { deck: string }) {
 
       {/*side by side*/}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Category */}
+        <div className="space-y-2">
+          <Label>Category</Label>
+          <Input
+            className="flex-1"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            placeholder="Deck Category"
+          />
+        </div>
 
-      {/* Category */}
-      <div className="space-y-2">
-        <Label>Category</Label>
-        <Input
-          className="flex-1"
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          placeholder="Deck Category"
-        />
+        {/* Published (switch true/false)*/}
+        <div className="space-y-2">
+          <Label>Public</Label>
+          <Switch
+            name="published"
+            checked={published}
+            onCheckedChange={setPublished}
+            required
+          />
+        </div>
       </div>
-
-      {/* Published (switch true/false)*/}
-      <div className="space-y-2">
-        <Label>Public</Label>
-        <Switch
-          name="published"
-          checked={published}
-          onCheckedChange={setPublished}
-          required
-        />
-      </div>
-
-      </div>
-
-
 
       {/* Flashcards grid */}
       <div className="space-y-2">
-        <Label>
-          Flashcards
-        </Label>
+        <Label>Flashcards</Label>
         <p className="text-sm text-gray-500">
           Add, edit, or remove flashcards for this deck.
         </p>
@@ -175,19 +183,19 @@ export default function EditDeckForm({ deck }: { deck: string }) {
         {cards.map((card, i) => (
           <Card key={i} className="relative">
             <CardContent className="space-y-2 pt-6">
-              <Input 
-                placeholder="Front" 
-                value={card.front} 
+              <Input
+                placeholder="Front"
+                value={card.front}
                 onChange={(e) => updateCard(i, "front", e.target.value)}
               />
-              <Input 
-                placeholder="Back" 
-                value={card.back} 
+              <Input
+                placeholder="Back"
+                value={card.back}
                 onChange={(e) => updateCard(i, "back", e.target.value)}
               />
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
                 className="absolute top-2 right-2 h-6 w-6"
                 onClick={() => removeCard(i)}
               >

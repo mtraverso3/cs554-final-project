@@ -1,23 +1,23 @@
 import {
   Quiz,
-  QuizSchema,
-  QuizEntrySchema,
   QuizAttempt,
   QuizAttemptSchema,
   QuizEntry,
+  QuizEntrySchema,
+  QuizSchema,
 } from "@/lib/db/data/schema";
 import { ObjectId } from "mongodb";
-import {quizzes} from "@/lib/db/config/mongoCollections";
+import { quizzes } from "@/lib/db/config/mongoCollections";
 import { getUserById } from "@/lib/db/data/users";
 import { redisClient } from "@/lib/db/config/redisConnection";
 import { deserializeQuiz, serializeQuiz } from "@/lib/db/data/serialize";
-
 
 export async function createQuiz(
   name: string,
   description: string,
   category: string,
   ownerId: string,
+  published: boolean,
   questionsList: QuizEntry[] = [],
 ): Promise<Quiz> {
   // Check if the owner exists
@@ -27,7 +27,7 @@ export async function createQuiz(
 
     // Validate questionsList
     const validatedQuestions = await Promise.all(
-      questionsList.map((q) => QuizEntrySchema.validateSync(q))
+      questionsList.map((q) => QuizEntrySchema.validateSync(q)),
     );
     let newQuiz: Quiz = {
       _id: quizId,
@@ -38,7 +38,8 @@ export async function createQuiz(
       lastStudied: new Date(),
       attempts: [],
       category: category,
-      questionsList: validatedQuestions
+      published: published,
+      questionsList: validatedQuestions,
     };
 
     newQuiz = await QuizSchema.validate(newQuiz);
@@ -50,14 +51,12 @@ export async function createQuiz(
     }
 
     return newQuiz;
-  }
-  finally{
+  } finally {
     const client = await redisClient();
     const cacheKey = `quiz:${quizId}`;
     const userCacheKey = `quizzes:user:${ownerId}`;
     await client.del(cacheKey);
     await client.del(userCacheKey);
-
   }
 }
 
@@ -95,10 +94,9 @@ export async function addQuestionToQuiz(
   quizId: string,
   entry: QuizEntry,
 ): Promise<Quiz> {
-
   await getQuizById(quizId);
 
-  entry = await QuizEntrySchema.validate(entry)
+  entry = await QuizEntrySchema.validate(entry);
 
   const quizCollection = await quizzes();
 
@@ -115,9 +113,7 @@ export async function addQuestionToQuiz(
   return updatedQuiz.value as Quiz;
 }
 
-export async function getQuizzesByUserId(
-    userId: string,
-): Promise<Quiz[]> {
+export async function getQuizzesByUserId(userId: string): Promise<Quiz[]> {
   if (!ObjectId.isValid(userId)) {
     throw new Error("Invalid ObjectId");
   }
@@ -127,16 +123,15 @@ export async function getQuizzesByUserId(
   const cached = await client.get(cacheKey);
   if (cached) {
     const serializedArray: string[] = JSON.parse(cached);
-    return serializedArray.map(s => deserializeQuiz(s));
+    return serializedArray.map((s) => deserializeQuiz(s));
   }
-
 
   const quizCollection = await quizzes();
   let quizList;
   try {
     quizList = await quizCollection
-        .find({ ownerId: new ObjectId(userId) })
-        .toArray();
+      .find({ ownerId: new ObjectId(userId) })
+      .toArray();
   } catch {
     throw new Error("Failed to get quizzes");
   }
@@ -148,11 +143,11 @@ export async function getQuizzesByUserId(
   return quizList;
 }
 export async function updateQuiz(
-    quizId: string,
-    userId: string,
-    name: string,
-    description: string,
-    questions: QuizEntry[]
+  quizId: string,
+  userId: string,
+  name: string,
+  description: string,
+  questions: QuizEntry[],
 ): Promise<string> {
   try {
     const quiz: Quiz = await getQuizById(quizId);
@@ -160,24 +155,24 @@ export async function updateQuiz(
       throw new Error("Not authorized to update this quiz");
     }
 
-    const questionsList: QuizEntry[] = questions.map(question => ({
+    const questionsList: QuizEntry[] = questions.map((question) => ({
       question: question.question,
-      answers: question.answers.map(answer => ({
+      answers: question.answers.map((answer) => ({
         answer: answer.answer,
         isCorrect: answer.isCorrect,
-      }))
+      })),
     }));
 
     const quizzesCollection = await quizzes();
     await quizzesCollection.updateOne(
-        { _id: new ObjectId(quizId) },
-        {
-          $set: {
-            name,
-            description,
-            questionsList
-          }
-        }
+      { _id: new ObjectId(quizId) },
+      {
+        $set: {
+          name,
+          description,
+          questionsList,
+        },
+      },
     );
 
     return JSON.stringify({ success: true });
@@ -185,10 +180,9 @@ export async function updateQuiz(
     console.error("Error updating deck:", error);
     return JSON.stringify({
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error"
+      error: error instanceof Error ? error.message : "Unknown error",
     });
-  }
-  finally {
+  } finally {
     const client = await redisClient();
     const cacheKey = `quiz:${quizId}`;
     const userCacheKey = `quizzes:user:${userId}`;
@@ -197,7 +191,10 @@ export async function updateQuiz(
   }
 }
 
-export async function deleteQuiz(quizId: string, userId: string): Promise<string> {
+export async function deleteQuiz(
+  quizId: string,
+  userId: string,
+): Promise<string> {
   try {
     const quiz: Quiz = await getQuizById(quizId);
     if (!quiz.ownerId.equals(new ObjectId(userId))) {
@@ -205,7 +202,9 @@ export async function deleteQuiz(quizId: string, userId: string): Promise<string
     }
 
     const quizzesCollection = await quizzes();
-    const deleteResult = await quizzesCollection.deleteOne({ _id: new ObjectId(quizId) });
+    const deleteResult = await quizzesCollection.deleteOne({
+      _id: new ObjectId(quizId),
+    });
 
     if (deleteResult.deletedCount === 0) {
       throw new Error("Quiz could not be deleted");
@@ -216,10 +215,9 @@ export async function deleteQuiz(quizId: string, userId: string): Promise<string
     console.error("Error deleting quiz:", error);
     return JSON.stringify({
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error"
+      error: error instanceof Error ? error.message : "Unknown error",
     });
-  }
-  finally {
+  } finally {
     const client = await redisClient();
     const cacheKey = `quiz:${quizId}`;
     const userCacheKey = `quizzes:user:${userId}`;
@@ -228,8 +226,16 @@ export async function deleteQuiz(quizId: string, userId: string): Promise<string
   }
 }
 
-export async function addQuizAttempt(quizId: string, userId: string, score: number): Promise<QuizAttempt> {
-  const newAttempt = {userId: new ObjectId(userId), score: score, date: new Date()};
+export async function addQuizAttempt(
+  quizId: string,
+  userId: string,
+  score: number,
+): Promise<QuizAttempt> {
+  const newAttempt = {
+    userId: new ObjectId(userId),
+    score: score,
+    date: new Date(),
+  };
   const finalAttempt = await QuizAttemptSchema.validate(newAttempt);
   const quizCollection = await quizzes();
 
@@ -247,14 +253,16 @@ export async function addQuizAttempt(quizId: string, userId: string, score: numb
 
 /*Takes in a quizId, and returns an object whose keys are all the users who have attempted that quiz,
 and values of that user's attempts.*/
-export async function separateAttemptsByUser(quizId: string): Promise<{[k: string]: Array<QuizAttempt>}> {
+export async function separateAttemptsByUser(
+  quizId: string,
+): Promise<{ [k: string]: Array<QuizAttempt> }> {
   const theQuiz = await getQuizById(quizId);
   const attempts = theQuiz.attempts;
-  const allAttempts: {[k: string]: Array<QuizAttempt>} = {};
-  for(let a = 0; a < attempts.length; a++) {
+  const allAttempts: { [k: string]: Array<QuizAttempt> } = {};
+  for (let a = 0; a < attempts.length; a++) {
     const attempt = attempts[a];
     const userId = attempt.userId.toString();
-    if(!(userId in allAttempts)) {
+    if (!(userId in allAttempts)) {
       allAttempts[userId] = [];
     }
     allAttempts[userId].push(attempt);
@@ -263,13 +271,16 @@ export async function separateAttemptsByUser(quizId: string): Promise<{[k: strin
 }
 
 /*Returns every attempt of the quiz by the user. If userId is not provided, returns all attempts.*/
-export async function getAttemptsByUser(quizId: string, userId?: string): Promise<Array<QuizAttempt>> {
-  if(!userId) {
+export async function getAttemptsByUser(
+  quizId: string,
+  userId?: string,
+): Promise<Array<QuizAttempt>> {
+  if (!userId) {
     const theQuiz = await getQuizById(quizId);
     return theQuiz.attempts;
   }
   const attemptsObject = await separateAttemptsByUser(quizId);
-  if(!(userId in attemptsObject)) {
+  if (!(userId in attemptsObject)) {
     return [];
   }
   return attemptsObject[userId];
@@ -278,11 +289,11 @@ export async function getAttemptsByUser(quizId: string, userId?: string): Promis
 export function average(attempts: Array<QuizAttempt>): number {
   const len = attempts.length;
   //It might be better to return null here because all the other functions do that
-  if(len == 0) {
-      return 0;
+  if (len == 0) {
+    return 0;
   }
   let combinedScore = 0;
-  for(let a = 0; a < len; a++) {
+  for (let a = 0; a < len; a++) {
     combinedScore += attempts[a].score;
   }
   return combinedScore / len;
@@ -290,13 +301,13 @@ export function average(attempts: Array<QuizAttempt>): number {
 export function best(attempts: Array<QuizAttempt>): QuizAttempt {
   const len = attempts.length;
   //Typecript does not let me return null, so an error has to be thrown if there are no valid attempts
-  if(len == 0) {
+  if (len == 0) {
     throw "There are no valid attempts.";
   }
   let best = attempts[0];
-  for(let a = 1; a < len; a++) {
+  for (let a = 1; a < len; a++) {
     const attempt = attempts[a];
-    if(attempt.score > best.score) {
+    if (attempt.score > best.score) {
       best = attempt;
     }
   }
@@ -304,62 +315,91 @@ export function best(attempts: Array<QuizAttempt>): QuizAttempt {
 }
 export function mostRecent(attempts: Array<QuizAttempt>): QuizAttempt {
   const len = attempts.length;
-  if(len == 0) {
+  if (len == 0) {
     throw "There are no valid attempts.";
   }
   //return array[len - 1];
   /*In theory, attempts arrays would always be sorted from least to most recent, but I don't think we 
   should assume that*/
   let mostRecent = attempts[0];
-  for(let a = 1; a < len; a++) {
+  for (let a = 1; a < len; a++) {
     const attempt = attempts[a];
-    if(attempt.date > mostRecent.date) {
+    if (attempt.date > mostRecent.date) {
       mostRecent = attempt;
     }
   }
   return mostRecent;
 }
-export async function averageByUser(quizId: string): Promise<{[k: string]: number}> {
+export async function averageByUser(
+  quizId: string,
+): Promise<{ [k: string]: number }> {
   const allAttempts = await separateAttemptsByUser(quizId);
-  const averages: {[k: string]: number} = {};
+  const averages: { [k: string]: number } = {};
   const theKeys = Object.keys(allAttempts);
-  for(let a = 0; a < theKeys.length; a++) {
+  for (let a = 0; a < theKeys.length; a++) {
     const key = theKeys[a];
     averages[key] = average(allAttempts[key]);
   }
   return averages;
 }
-export async function bestByUser(quizId: string): Promise<{[k: string]: QuizAttempt}> {
+export async function bestByUser(
+  quizId: string,
+): Promise<{ [k: string]: QuizAttempt }> {
   const allAttempts = await separateAttemptsByUser(quizId);
-  const bestAttempts: {[k: string]: QuizAttempt} = {};
+  const bestAttempts: { [k: string]: QuizAttempt } = {};
   const theKeys = Object.keys(allAttempts);
-  for(let a = 0; a < theKeys.length; a++) {
+  for (let a = 0; a < theKeys.length; a++) {
     const key = theKeys[a];
     bestAttempts[key] = best(allAttempts[key]);
   }
   return bestAttempts;
 }
-export async function recentByUser(quizId: string): Promise<{[k: string]: QuizAttempt}> {
+export async function recentByUser(
+  quizId: string,
+): Promise<{ [k: string]: QuizAttempt }> {
   const allAttempts = await separateAttemptsByUser(quizId);
-  const recentAttempts: {[k: string]: QuizAttempt} = {};
+  const recentAttempts: { [k: string]: QuizAttempt } = {};
   const theKeys = Object.keys(allAttempts);
-  for(let a = 0; a < theKeys.length; a++) {
+  for (let a = 0; a < theKeys.length; a++) {
     const key = theKeys[a];
     recentAttempts[key] = mostRecent(allAttempts[key]);
   }
   return recentAttempts;
 }
 //Returns the average score for that user's attempts, or all attempts if userId is not provided.
-export async function getAverageScore(quizId: string, userId?: string): Promise<number> {
+export async function getAverageScore(
+  quizId: string,
+  userId?: string,
+): Promise<number> {
   const attempts = await getAttemptsByUser(quizId, userId);
   return average(attempts);
 }
 
-export async function getBestAttempt(quizId: string, userId?: string): Promise<QuizAttempt> {
+export async function getBestAttempt(
+  quizId: string,
+  userId?: string,
+): Promise<QuizAttempt> {
   const attempts = await getAttemptsByUser(quizId, userId);
   return best(attempts);
 }
-export async function getMostRecentAttempt(quizId: string, userId?: string): Promise<QuizAttempt> {
+export async function getMostRecentAttempt(
+  quizId: string,
+  userId?: string,
+): Promise<QuizAttempt> {
   const attempts = await getAttemptsByUser(quizId, userId);
   return mostRecent(attempts);
-};
+}
+
+export async function getPublicQuizzes(): Promise<Quiz[]> {
+  const quizCollection = await quizzes();
+  let quizList;
+  try {
+    quizList = await quizCollection.find({ published: true }).toArray();
+  } catch {
+    throw new Error("Failed to get public decks");
+  }
+  if (!quizList) {
+    throw new Error("Public decks not found");
+  }
+  return quizList;
+}
