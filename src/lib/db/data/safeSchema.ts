@@ -52,6 +52,10 @@ export const DeckInputSchema = Yup.object({
         .max(50, "Category must be at most 50 characters")
         .matches(/^[A-Za-z]+$/, "Category must contain only letters"),
 
+  published: Yup.boolean()
+      .default(false)
+      .required("Public is required"),
+
 });
 
 export type DeckInput = Yup.InferType<typeof DeckInputSchema>;

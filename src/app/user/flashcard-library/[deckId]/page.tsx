@@ -36,6 +36,7 @@ function serializeDeck(deck: Deck) {
       studyTime: deck.studyProgress.studyTime,
       unknownCardIds: deck.studyProgress.unknownCardIds,
   },
+    published: deck.published,
   };
 }
 

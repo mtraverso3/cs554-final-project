@@ -29,6 +29,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { saveStudyProgress } from "@/lib/deckForms";
 import { StudyProgressSchema } from "@/lib/db/data/safeSchema";
+import * as Yup from "yup";
 
 type FlashcardDTO = {
   _id: string;

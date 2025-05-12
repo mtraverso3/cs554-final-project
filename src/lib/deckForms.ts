@@ -48,7 +48,13 @@ export async function saveStudyProgress(
   progress: StudyProgressData,
   isComplete: boolean = false
 ): Promise<string> {
-  const  userObject: User = await authenticateUser();
+  const userObject: User = await authenticateUser();
   const userId = userObject._id.toString();
   return decks.saveStudyProgress(deckId, userId, progress, isComplete);
+}
+
+export async function getPublicDecks(): Promise<Deck[]> {
+  await authenticateUser();
+
+  return decks.getPublicDecks();
 }

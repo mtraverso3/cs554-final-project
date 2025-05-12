@@ -35,7 +35,7 @@ export function serializeDeck(deck: Deck): string {
   });
 }
 
-type SerializedDeck = {
+export type SerializedDeck = {
   _id: string;
   category: string;
   comments: Array<{
@@ -65,6 +65,7 @@ type SerializedDeck = {
     studyTime: number;
     unknownCardIds: string[];
   };
+  published: boolean;
 };
 
 export function deserializeDeck(serialized: string): Deck {
@@ -99,6 +100,7 @@ export function deserializeDeck(serialized: string): Deck {
       studyTime: data.studyProgress.studyTime,
       unknownCardIds: data.studyProgress.unknownCardIds,
     },
+    published: data.published
   };
 }
 
