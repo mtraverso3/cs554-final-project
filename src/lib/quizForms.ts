@@ -52,6 +52,7 @@ export async function addDeck(
   name: string,
   description: string,
   category: string,
+  published: boolean,
 ) {
   const userObject: User = await authenticateUser();
 
@@ -59,6 +60,7 @@ export async function addDeck(
     name,
     description,
     category,
+    published,
     userObject._id.toString(),
   );
 }

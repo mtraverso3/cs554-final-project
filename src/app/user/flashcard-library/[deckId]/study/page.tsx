@@ -74,7 +74,7 @@ async function getDeck(id: string): Promise<Deck> {
 
   const deck: Deck = await getDeckById(id);
 
-  if (!deck.ownerId.equals(userObject._id)) {
+  if (!deck.ownerId.equals(userObject._id) && !deck.published) {
     throw new Error("Not Authorized");
   }
 

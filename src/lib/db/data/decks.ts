@@ -11,6 +11,7 @@ export async function createDeck(
   name: string,
   description: string,
   category: string,
+  published: boolean,
   userId: string,
 
 ): Promise<Deck> {
@@ -29,7 +30,7 @@ export async function createDeck(
     studyProgress: {} as StudyProgress,
     likes: [],
     comments: [],
-    published: false,
+    published: published
   };
 
   newDeck = await DeckSchema.validate(newDeck);

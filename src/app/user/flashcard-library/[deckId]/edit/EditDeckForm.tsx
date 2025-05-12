@@ -8,8 +8,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Plus, Trash2 } from "lucide-react";
 import { updateDeck } from "@/lib/deckForms";
 import { useRouter } from "next/navigation";
-import { DeckInputSchema } from "@/lib/db/data/safeSchema"; // safe for front end
+import { DeckInputSchema, FlashcardInput, FlashcardInputSchema } from "@/lib/db/data/safeSchema"; // safe for front end
 import * as Yup from "yup";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
 type Flashcard = { front: string; back: string };
 
@@ -21,15 +23,17 @@ export default function EditDeckForm({ deck }: { deck: string }) {
   const router = useRouter();
   const [name, setName] = useState(parsedDeck.name);
   const [description, setDescription] = useState(parsedDeck.description);
-  const [cards, setCards] = useState<Flashcard[]>(
-    parsedDeck.flashcardList.map((card: {front: string, back: string }) => ({ front: card.front, back: card.back }))
+  const [category, setCategory] = useState(parsedDeck.category);
+  const [published, setPublished] = useState(parsedDeck.published);
+  const [cards, setCards] = useState<FlashcardInput[]>(
+    parsedDeck.flashcardList.map((card: {_id: string, front: string, back: string }) => ({ _id: parsedDeck._id, front: card.front, back: card.back }))
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string[] | null>(null);
 
-  const addCard = () => setCards(prev => [...prev, { front: "", back: "" }]);
+  const addCard = () => setCards(prev => [...prev, { _id: "placeholderId", front: "", back: "" }]);
 
-  const updateCard = (index: number, field: keyof Flashcard, value: string) => {
+  const updateCard = (index: number, field: keyof FlashcardInput, value: string) => {
     setCards(prevCards => {
       const newCards = [...prevCards];
       newCards[index] = { ...newCards[index], [field]: value };
@@ -56,6 +60,7 @@ export default function EditDeckForm({ deck }: { deck: string }) {
       await DeckInputSchema.validate(formData, { abortEarly: false });
     } catch (validationError) {
       if (validationError instanceof Yup.ValidationError) {
+        console.log(validationError.errors);
         setError(validationError.errors); // Or join all errors
         return;
       }
@@ -104,7 +109,10 @@ export default function EditDeckForm({ deck }: { deck: string }) {
       )}
       
       {/* Name */}
-      <div className="flex items-center gap-2">
+      <div className="space-y-2">
+        <Label>
+          Deck Name
+        </Label>
         <Input
           className="flex-1"
           value={name}
@@ -114,7 +122,10 @@ export default function EditDeckForm({ deck }: { deck: string }) {
       </div>
 
       {/* Description */}
-      <div className="flex items-start gap-2">
+      <div className="space-y-2">
+        <Label>
+          Description
+        </Label>
         <Textarea
           className="flex-1 resize-y"
           rows={3}
@@ -124,7 +135,44 @@ export default function EditDeckForm({ deck }: { deck: string }) {
         />
       </div>
 
+      {/*side by side*/}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+      {/* Category */}
+      <div className="space-y-2">
+        <Label>Category</Label>
+        <Input
+          className="flex-1"
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          placeholder="Deck Category"
+        />
+      </div>
+
+      {/* Published (switch true/false)*/}
+      <div className="space-y-2">
+        <Label>Public</Label>
+        <Switch
+          name="published"
+          checked={published}
+          onCheckedChange={setPublished}
+          required
+        />
+      </div>
+
+      </div>
+
+
+
       {/* Flashcards grid */}
+      <div className="space-y-2">
+        <Label>
+          Flashcards
+        </Label>
+        <p className="text-sm text-gray-500">
+          Add, edit, or remove flashcards for this deck.
+        </p>
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {cards.map((card, i) => (
           <Card key={i} className="relative">

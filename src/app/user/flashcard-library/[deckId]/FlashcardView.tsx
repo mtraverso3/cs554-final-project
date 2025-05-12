@@ -900,11 +900,11 @@ export default function FlashcardView({ deck, isOwner }: { deck: DeckInput, isOw
           <p className="text-lg mb-4">
             This deck doesn&apos;t have any flashcards yet.
           </p>
-          <Button asChild>
+          {isOwner && (<Button asChild>
             <Link href={`/user/flashcard-library/${deck._id}/edit`}>
               Add Flashcards
             </Link>
-          </Button>
+          </Button>)}
         </div>
       )}
     </div>

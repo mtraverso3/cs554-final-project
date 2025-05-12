@@ -7,11 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { DeckCreateSchema } from "@/lib/db/data/safeSchema";
 import * as Yup from "yup";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface DeckForm {
   name: string;
   description: string;
   category: string;
+  published: boolean;
 }
 
 export default function CreateDeck() {
@@ -20,6 +23,7 @@ export default function CreateDeck() {
     name: "",
     description: "",
     category: "",
+    published: false,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string[] | null>(null);
@@ -29,6 +33,10 @@ export default function CreateDeck() {
   ) => {
     const { name, value } = e.target;
     setDeckInfo((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSwitchChange = (checked: boolean) => {
+    setDeckInfo((prev) => ({ ...prev, published: checked }));
   };
 
   const finishDeck = async () => {
@@ -46,7 +54,7 @@ export default function CreateDeck() {
     setIsSubmitting(true);
     
     try {
-      await addDeck(deckInfo.name, deckInfo.description, deckInfo.category);
+      await addDeck(deckInfo.name, deckInfo.description, deckInfo.category, deckInfo.published);
       router.push("/user/flashcard-library");
     } catch (error) {
       console.error(error);
@@ -111,6 +119,18 @@ export default function CreateDeck() {
             value={deckInfo.category}
             onChange={handleInputChange}
             placeholder="Enter deck category (e.g., Math, Science, Languages)"
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+            Public
+          </Label>
+          <Switch
+            name="published"
+            checked={deckInfo.published}
+            onCheckedChange={handleSwitchChange}
             required
           />
         </div>
