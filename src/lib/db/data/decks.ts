@@ -29,6 +29,7 @@ export async function createDeck(
     studyProgress: {} as StudyProgress,
     likes: [],
     comments: [],
+    published: false,
   };
 
   newDeck = await DeckSchema.validate(newDeck);
@@ -316,6 +317,23 @@ export async function getLikedDecksByUser(
   }
   if (!decksList) {
     throw new Error("Liked decks not found");
+  }
+  return decksList;
+}
+
+
+export async function getPublicDecks(): Promise<Deck[]> {
+  const deckCollection = await decks();
+  let decksList;
+  try {
+    decksList = await deckCollection
+      .find({ public: true })
+      .toArray();
+  } catch {
+    throw new Error("Failed to get public decks");
+  }
+  if (!decksList) {
+    throw new Error("Public decks not found");
   }
   return decksList;
 }

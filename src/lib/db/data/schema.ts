@@ -86,6 +86,9 @@ export const DeckSchema = yup.object({
     .of(CommentSchema)
     .default([])
     .required("Comments must be an array"),
+  published: Yup.boolean()
+    .default(false)
+    .required("Public is required"),
 });
 
 export type Deck = Yup.InferType<typeof DeckSchema>;

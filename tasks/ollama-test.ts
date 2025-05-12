@@ -35,6 +35,7 @@ async function main() {
     studyProgress: {} as StudyProgress,
     likes: [],
     comments: [],
+    published: false,
   };
 
   try {
