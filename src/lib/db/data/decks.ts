@@ -1,9 +1,10 @@
 import { decks } from "../config/mongoCollections";
 import { Collection, ObjectId } from "mongodb";
 import { getUserById } from "./users";
-import {CommentSchema, Comment, Deck, DeckSchema, StudyProgress, User, Flashcard} from "./schema";
-import {authenticateUser} from "@/lib/auth/auth";
+import {CommentSchema, Comment, Deck, DeckSchema, StudyProgress, Flashcard} from "./schema";
 import {StudyProgressData} from "@/lib/deckForms";
+import { redisClient } from "@/lib/db/config/redisConnection";
+
 
 export async function createDeck(
   name: string,
@@ -166,6 +167,39 @@ export async function getDeckById(id: string): Promise<Deck> {
     throw new Error("Invalid ObjectId");
   }
 
+  const client = await redisClient();
+
+  const cacheKey = `deck:${id}`;
+  const cachedDeck = await client.get(cacheKey);
+  if (cachedDeck) {
+    const parsed = JSON.parse(cachedDeck);
+    // Rehydrate ObjectId and Date fields
+    parsed._id = new ObjectId(parsed._id);
+    parsed.ownerId = new ObjectId(parsed.ownerId);
+    parsed.createdAt = new Date(parsed.createdAt);
+    parsed.lastStudied = new Date(parsed.lastStudied);
+    parsed.comments = parsed.comments.map(
+      (c: {
+        ownerId: number;
+        text: string;
+        createdAt: string | number | Date;
+      }) => ({
+        ownerId: new ObjectId(c.ownerId),
+        text: c.text,
+        createdAt: new Date(c.createdAt),
+      }),
+    );
+    parsed.flashcardList = parsed.flashcardList.map(
+      (f: { _id: number; deckId: number; front: string; back: string }) => ({
+        _id: new ObjectId(f._id),
+        deckId: new ObjectId(f.deckId),
+        front: f.front,
+        back: f.back,
+      }),
+    );
+    return parsed;
+  }
+
   const deckCollection = await decks();
   let deck;
   try {
@@ -178,6 +212,9 @@ export async function getDeckById(id: string): Promise<Deck> {
   if (!deck) {
     throw new Error("Deck not found");
   }
+
+  // Cache the fresh deck in Redis (expires in 60s)
+  await client.set(cacheKey, JSON.stringify(deck), { EX: 3600 });
   return deck;
 }
 
