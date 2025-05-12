@@ -1,4 +1,4 @@
-import { Deck, Quiz, User } from "@/lib/db/data/schema";
+import { Deck, Quiz, QuizEntry, User } from "@/lib/db/data/schema";
 import { ObjectId } from "mongodb";
 
 export function serializeDeck(deck: Deck): string {
@@ -32,7 +32,43 @@ export function serializeDeck(deck: Deck): string {
       studyTime: deck.studyProgress.studyTime,
       unknownCardIds: deck.studyProgress.unknownCardIds,
     },
+    published: deck.published,
   });
+}
+
+export function serializeDeck2(deck: Deck): SerializedDeck {
+  return {
+    _id: deck._id.toString(),
+    category: deck.category,
+    comments: deck.comments.map((c) => ({
+      createdAt: c.createdAt.toISOString(),
+      ownerId: c.ownerId.toString(),
+      text: c.text,
+    })),
+    createdAt: deck.createdAt.toISOString(),
+    description: deck.description,
+    flashcardList: deck.flashcardList.map((f) => ({
+      _id: f._id.toString(),
+      deckId: f.deckId.toString(),
+      front: f.front,
+      back: f.back,
+    })),
+    lastStudied: deck.lastStudied.toISOString(),
+    likes: deck.likes.map((l) => l.toString()),
+    name: deck.name,
+    ownerId: deck.ownerId.toString(),
+    studyProgress: {
+      currentCardIndex: deck.studyProgress.currentCardIndex,
+      isCompleted: deck.studyProgress.isCompleted,
+      isReviewMode: deck.studyProgress.isReviewMode,
+      knownCardIds: deck.studyProgress.knownCardIds,
+      lastPosition: deck.studyProgress.lastPosition,
+      reviewingCardIds: deck.studyProgress.reviewingCardIds,
+      studyTime: deck.studyProgress.studyTime,
+      unknownCardIds: deck.studyProgress.unknownCardIds,
+    },
+    published: deck.published,
+  };
 }
 
 export type SerializedDeck = {
@@ -125,6 +161,25 @@ export function serializeQuiz(quiz: Quiz): string {
     })),
   });
 }
+export function serializeQuiz2(quiz: Quiz) {
+  return {
+    _id: quiz._id.toString(),
+    ownerId: quiz.ownerId.toString(),
+    name: quiz.name,
+    description: quiz.description,
+    category: quiz.category,
+    createdAt: quiz.createdAt ? quiz.createdAt.toISOString() : new Date().toISOString(),
+    lastStudied: quiz.lastStudied ? quiz.lastStudied.toISOString() : new Date().toISOString(),
+    questionsList: quiz.questionsList.map((question: QuizEntry) => ({
+      question: question.question,
+      answers: question.answers.map((answer) => ({
+        answer: answer.answer,
+        isCorrect: answer.isCorrect,
+      }))
+    })),
+  };
+}
+
 
 export function deserializeQuiz(cached: string): Quiz {
   const raw = JSON.parse(cached) as {

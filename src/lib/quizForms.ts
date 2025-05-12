@@ -7,6 +7,7 @@ import {Quiz, User, QuizEntry, Deck} from "@/lib/db/data/schema";
 import * as quizzes from "@/lib/db/data/quizzes";
 import { getDeckById } from "@/lib/db/data/decks";
 import { deckToQuiz } from "@/lib/ollama/ollama";
+import { getQuizById } from "@/lib/db/data/quizzes";
 
 export async function createFlashcard(front: string, back: string) {
   console.log(front, back);

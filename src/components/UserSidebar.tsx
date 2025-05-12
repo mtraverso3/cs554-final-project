@@ -81,6 +81,27 @@ export function UserSidebar({ user }: { user: { name: string } }) {
           </SidebarMenu>
         </SidebarGroup>
         <SidebarGroup>
+          <SidebarGroupLabel>Explore Public</SidebarGroupLabel>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/user/explore/decks">
+                  <LayersIcon />
+                  <span>Explore Decks</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/user/explore/quizzes">
+                  <BookOpenIcon />
+                  <span>Explore Quizzes</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
+        <SidebarGroup>
           <SidebarGroupLabel>Account</SidebarGroupLabel>
           <SidebarMenu>
             <SidebarMenuItem>

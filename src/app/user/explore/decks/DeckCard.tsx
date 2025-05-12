@@ -35,7 +35,7 @@ export default function DeckCard({ deck }: DeckCardProps) {
 
       <CardFooter className="pt-2">
         <Button asChild size="sm">
-          <Link href={`/public/flashcard-library/${deck._id}`}>
+          <Link href={`/user/flashcard-library/${deck._id}`}>
             View
           </Link>
         </Button>

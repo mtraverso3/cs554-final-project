@@ -3,6 +3,7 @@
 import { authenticateUser } from "@/lib/auth/auth";
 import * as decks from "@/lib/db/data/decks";
 import { Deck, User } from "@/lib/db/data/schema";
+import { getDeckById } from "@/lib/db/data/decks";
 
 export async function getDecks(): Promise<string> {
   const userObject: User = await authenticateUser();
@@ -57,4 +58,16 @@ export async function getPublicDecks(): Promise<Deck[]> {
   await authenticateUser();
 
   return decks.getPublicDecks();
+}
+
+export async function getDeck(id: string): Promise<Deck> {
+  const userObject: User = await authenticateUser();
+
+  const deck: Deck = await getDeckById(id);
+
+  if (!deck.ownerId.equals(userObject._id) && !deck.published) {
+    throw new Error("Not Authorized");
+  }
+
+  return deck;
 }

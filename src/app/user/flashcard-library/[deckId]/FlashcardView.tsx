@@ -16,7 +16,7 @@ type CardWithMastery = FlashcardInput & {
   reviewCount: number;
 };
 
-export default function FlashcardView({ deck }: { deck: DeckInput }) {
+export default function FlashcardView({ deck, isOwner }: { deck: DeckInput, isOwner: boolean }) {
   const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -302,14 +302,23 @@ export default function FlashcardView({ deck }: { deck: DeckInput }) {
             <span className="ml-4 text-gray-500">{cards.length} cards</span>
           </div>
           
-          <div className="flex gap-2">
-            <Button asChild variant="outline">
-              <Link href={`/user/flashcard-library/${deck._id}/edit`}>
-                <Edit className="mr-2" size={16} />
-                Edit Deck
-              </Link>
-            </Button>
-          </div>
+
+            <div className="flex gap-2">
+              {isOwner ? (
+                <Button asChild variant="outline">
+                  <Link href={`/user/flashcard-library/${deck._id}/edit`}>
+                    <Edit className="mr-2" size={16} />
+                    Edit Deck
+                  </Link>
+                </Button>
+              ) : (
+                <Button variant="outline" disabled>
+                  <Edit className="mr-2" size={16} />
+                  Edit Deck
+                </Button>
+              )}
+            </div>
+
         </div>
         <p className="mt-2 text-gray-600 text-center">{deck.description}</p>
       </div>
@@ -322,22 +331,22 @@ export default function FlashcardView({ deck }: { deck: DeckInput }) {
           </Link>
         </Button>
       </div>
-      
+
       {/* mode switcher */}
       <div className="flex justify-center mb-6">
         <div className="inline-flex rounded-md shadow-sm">
           <Button
-            variant={viewMode === 'card' ? 'default' : 'outline'}
+            variant={viewMode === "card" ? "default" : "outline"}
             className="rounded-r-none"
-            onClick={() => setViewMode('card')}
+            onClick={() => setViewMode("card")}
           >
             <LayoutGrid className="mr-2" size={16} />
             Card View
           </Button>
           <Button
-            variant={viewMode === 'list' ? 'default' : 'outline'}
+            variant={viewMode === "list" ? "default" : "outline"}
             className="rounded-l-none"
-            onClick={() => setViewMode('list')}
+            onClick={() => setViewMode("list")}
           >
             <List className="mr-2" size={16} />
             List View
@@ -345,7 +354,10 @@ export default function FlashcardView({ deck }: { deck: DeckInput }) {
         </div>
       </div>
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded space-y-1" role="alert">
+        <div
+          className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded space-y-1"
+          role="alert"
+        >
           {Array.isArray(error) ? (
             <ul className="list-disc list-inside text-sm">
               {error.map((errMsg, idx) => (
@@ -357,47 +369,54 @@ export default function FlashcardView({ deck }: { deck: DeckInput }) {
           )}
         </div>
       )}
-      
+
       {hasCards ? (
         <>
-        {/* card view (to flip the flashcards) */}
-          {viewMode === 'card' && (
+          {/* card view (to flip the flashcards) */}
+          {viewMode === "card" && (
             <div className="max-w-2xl mx-auto">
               <div className="relative h-80 mb-6 perspective">
                 <div
-                  className={`flip-card w-full h-full ${isFlipped ? 'flipped' : ''}`}
+                  className={`flip-card w-full h-full ${isFlipped ? "flipped" : ""}`}
                   onClick={flipCard}
                 >
                   {/* front */}
                   <div className="card-face border rounded-xl bg-white shadow p-8 flex items-center justify-center">
                     {editing === currentIndex ? (
-                      <div 
-                        className="w-full h-full flex flex-col justify-center" 
+                      <div
+                        className="w-full h-full flex flex-col justify-center"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <label className="font-medium mb-2">Front</label>
                         <Input
                           value={editValues.front}
-                          onChange={(e) => setEditValues({ ...editValues, front: e.target.value })}
+                          onChange={(e) =>
+                            setEditValues({
+                              ...editValues,
+                              front: e.target.value,
+                            })
+                          }
                           className="mb-4"
                           placeholder="Flashcard front"
                         />
                         <div className="flex justify-end space-x-2 mt-4">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={cancelEditing}
                             disabled={isSaving}
                           >
                             <X size={16} className="mr-1" />
                             Cancel
                           </Button>
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             onClick={() => saveEditing(currentIndex)}
                             disabled={isSaving}
                           >
-                            {isSaving ? "Saving..." : (
+                            {isSaving ? (
+                              "Saving..."
+                            ) : (
                               <>
                                 <Check size={16} className="mr-1" />
                                 Save
@@ -408,8 +427,10 @@ export default function FlashcardView({ deck }: { deck: DeckInput }) {
                       </div>
                     ) : (
                       <>
-                        <p className="text-xl font-medium text-center">{currentCard?.front}</p>
-                        <button
+                        <p className="text-xl font-medium text-center">
+                          {currentCard?.front}
+                        </p>
+                        {isOwner && (<button
                           onClick={(e) => {
                             e.stopPropagation();
                             startEditing(currentIndex);
@@ -417,7 +438,7 @@ export default function FlashcardView({ deck }: { deck: DeckInput }) {
                           className="absolute top-4 right-4 text-gray-400 hover:text-gray-700"
                         >
                           <Edit size={18} />
-                        </button>
+                        </button>)}
                       </>
                     )}
                   </div>
@@ -425,33 +446,40 @@ export default function FlashcardView({ deck }: { deck: DeckInput }) {
                   {/* back */}
                   <div className="card-face card-back border rounded-xl bg-white shadow p-8 flex items-center justify-center">
                     {editing === currentIndex ? (
-                      <div 
-                        className="w-full h-full flex flex-col justify-center" 
+                      <div
+                        className="w-full h-full flex flex-col justify-center"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <label className="font-medium mb-2">Back</label>
                         <Input
                           value={editValues.back}
-                          onChange={(e) => setEditValues({ ...editValues, back: e.target.value })}
+                          onChange={(e) =>
+                            setEditValues({
+                              ...editValues,
+                              back: e.target.value,
+                            })
+                          }
                           className="mb-4"
                           placeholder="Flashcard back"
                         />
                         <div className="flex justify-end space-x-2 mt-4">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={cancelEditing}
                             disabled={isSaving}
                           >
                             <X size={16} className="mr-1" />
                             Cancel
                           </Button>
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             onClick={() => saveEditing(currentIndex)}
                             disabled={isSaving}
                           >
-                            {isSaving ? "Saving..." : (
+                            {isSaving ? (
+                              "Saving..."
+                            ) : (
                               <>
                                 <Check size={16} className="mr-1" />
                                 Save
@@ -462,16 +490,18 @@ export default function FlashcardView({ deck }: { deck: DeckInput }) {
                       </div>
                     ) : (
                       <>
-                        <p className="text-xl font-medium text-center">{currentCard?.back}</p>
-                        <button
+                        <p className="text-xl font-medium text-center">
+                          {currentCard?.back}
+                        </p>
+                        {isOwner && (<button
                           onClick={(e) => {
                             e.stopPropagation();
-                            startEditing(currentIndex);
+                            startEditing(currentIndex)
                           }}
                           className="absolute top-4 right-4 text-gray-400 hover:text-gray-700"
                         >
                           <Edit size={18} />
-                        </button>
+                        </button>)}
                       </>
                     )}
                   </div>
@@ -480,24 +510,24 @@ export default function FlashcardView({ deck }: { deck: DeckInput }) {
 
               {/* txt to speech and navigation */}
               <div className="flex justify-between items-center mb-8">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={prevCard}
                   disabled={editing !== null}
                 >
                   <ChevronLeft size={20} />
                   Previous
                 </Button>
-                
+
                 <div className="flex flex-col items-center">
                   <div className="flex items-center mb-1">
                     <span className="text-sm text-gray-500 mr-2">
                       {currentIndex + 1} of {cards.length}
                     </span>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className={`rounded-full p-2 ${isSpeaking ? 'bg-blue-100' : ''}`}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={`rounded-full p-2 ${isSpeaking ? "bg-blue-100" : ""}`}
                       onClick={() => {
                         if (currentCard) {
                           if (isSpeaking) {
@@ -509,14 +539,17 @@ export default function FlashcardView({ deck }: { deck: DeckInput }) {
                       }}
                       disabled={!currentCard || editing !== null}
                     >
-                      <Volume2 size={16} className={isSpeaking ? 'text-blue-600' : ''} />
+                      <Volume2
+                        size={16}
+                        className={isSpeaking ? "text-blue-600" : ""}
+                      />
                     </Button>
                   </div>
                   <p className="text-sm text-gray-400">Click card to flip</p>
                 </div>
-                
-                <Button 
-                  variant="outline" 
+
+                <Button
+                  variant="outline"
                   onClick={nextCard}
                   disabled={editing !== null}
                 >
@@ -526,31 +559,33 @@ export default function FlashcardView({ deck }: { deck: DeckInput }) {
               </div>
             </div>
           )}
-          
+
           {/* list view (flashcards in a list) */}
-          {viewMode === 'list' && (
+          {viewMode === "list" && (
             <div className="max-w-4xl mx-auto">
               <div className="flex justify-between items-center mb-6">
                 <div className="inline-flex rounded-md shadow-sm">
                   <Button
-                    variant={listViewMode === 'original' ? 'default' : 'outline'}
+                    variant={
+                      listViewMode === "original" ? "default" : "outline"
+                    }
                     className="rounded-r-none"
-                    onClick={() => setListViewMode('original')}
+                    onClick={() => setListViewMode("original")}
                   >
                     <List className="mr-2" size={16} />
                     Original Order
                   </Button>
                   <Button
-                    variant={listViewMode === 'spaced' ? 'default' : 'outline'}
+                    variant={listViewMode === "spaced" ? "default" : "outline"}
                     className="rounded-l-none"
-                    onClick={() => setListViewMode('spaced')}
+                    onClick={() => setListViewMode("spaced")}
                   >
                     <BarChart2 className="mr-2" size={16} />
                     Spaced Repetition
                   </Button>
                 </div>
                 {/* mastery stats are only shown in spaced rep view*/}
-                {listViewMode === 'spaced' && (
+                {listViewMode === "spaced" && (
                   <div className="flex gap-4 text-sm">
                     <span className="flex items-center">
                       <span className="w-3 h-3 bg-green-500 rounded-full mr-2"></span>
@@ -570,15 +605,20 @@ export default function FlashcardView({ deck }: { deck: DeckInput }) {
 
               {/* display cards sectioin */}
               <div className="space-y-6">
-                {listViewMode === 'original' ? (
+                {listViewMode === "original" ? (
                   cards.map((card, idx) => (
-                    <div key={card._id} className="border rounded-lg shadow overflow-hidden">
+                    <div
+                      key={card._id}
+                      className="border rounded-lg shadow overflow-hidden"
+                    >
                       <div className="bg-gray-50 p-4 flex items-center justify-between">
                         <div className="flex items-center">
-                          <span className="font-medium text-gray-700 mr-2">Card {idx + 1}</span>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
+                          <span className="font-medium text-gray-700 mr-2">
+                            Card {idx + 1}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             className="rounded-full p-1"
                             onClick={() => {
                               if (isSpeaking) {
@@ -589,28 +629,33 @@ export default function FlashcardView({ deck }: { deck: DeckInput }) {
                             }}
                             disabled={editing === idx}
                           >
-                            <Volume2 size={14} className={isSpeaking ? 'text-blue-600' : ''} />
+                            <Volume2
+                              size={14}
+                              className={isSpeaking ? "text-blue-600" : ""}
+                            />
                           </Button>
                         </div>
-                        
+
                         <div className="flex space-x-2">
                           {editing === idx ? (
                             <>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
+                              <Button
+                                variant="outline"
+                                size="sm"
                                 onClick={cancelEditing}
                                 disabled={isSaving}
                               >
                                 <X size={16} className="mr-1" />
                                 Cancel
                               </Button>
-                              <Button 
-                                size="sm" 
+                              <Button
+                                size="sm"
                                 onClick={() => saveEditing(idx)}
                                 disabled={isSaving}
                               >
-                                {isSaving ? "Saving..." : (
+                                {isSaving ? (
+                                  "Saving..."
+                                ) : (
                                   <>
                                     <Check size={16} className="mr-1" />
                                     Save
@@ -618,7 +663,7 @@ export default function FlashcardView({ deck }: { deck: DeckInput }) {
                                 )}
                               </Button>
                             </>
-                          ) : (
+                          ) : (isOwner && (
                             <Button
                               size="sm"
                               variant="ghost"
@@ -627,32 +672,50 @@ export default function FlashcardView({ deck }: { deck: DeckInput }) {
                               <Edit size={16} className="mr-1" />
                               Edit
                             </Button>
-                          )}
+                          ))}
                         </div>
                       </div>
                       <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <h3 className="text-sm font-medium text-gray-500">Front</h3>
+                          <h3 className="text-sm font-medium text-gray-500">
+                            Front
+                          </h3>
                           {editing === idx ? (
                             <Input
                               value={editValues.front}
-                              onChange={(e) => setEditValues({ ...editValues, front: e.target.value })}
+                              onChange={(e) =>
+                                setEditValues({
+                                  ...editValues,
+                                  front: e.target.value,
+                                })
+                              }
                               placeholder="Card front"
                             />
                           ) : (
-                            <p className="p-3 bg-gray-50 rounded">{card.front}</p>
+                            <p className="p-3 bg-gray-50 rounded">
+                              {card.front}
+                            </p>
                           )}
                         </div>
                         <div className="space-y-2">
-                          <h3 className="text-sm font-medium text-gray-500">Back</h3>
+                          <h3 className="text-sm font-medium text-gray-500">
+                            Back
+                          </h3>
                           {editing === idx ? (
                             <Input
                               value={editValues.back}
-                              onChange={(e) => setEditValues({ ...editValues, back: e.target.value })}
+                              onChange={(e) =>
+                                setEditValues({
+                                  ...editValues,
+                                  back: e.target.value,
+                                })
+                              }
                               placeholder="Card back"
                             />
                           ) : (
-                            <p className="p-3 bg-gray-50 rounded">{card.back}</p>
+                            <p className="p-3 bg-gray-50 rounded">
+                              {card.back}
+                            </p>
                           )}
                         </div>
                       </div>
@@ -669,15 +732,20 @@ export default function FlashcardView({ deck }: { deck: DeckInput }) {
                         </h3>
                         <div className="space-y-4">
                           {cardsWithMastery
-                            .filter(card => card.masteryStatus === 'mastered')
+                            .filter((card) => card.masteryStatus === "mastered")
                             .map((card) => (
-                              <div key={card._id} className={`border-l-4 ${getMasteryColorClass('mastered')} rounded-lg shadow overflow-hidden`}>
+                              <div
+                                key={card._id}
+                                className={`border-l-4 ${getMasteryColorClass("mastered")} rounded-lg shadow overflow-hidden`}
+                              >
                                 <div className="bg-green-50 p-4 flex items-center">
                                   <div className="flex items-center">
-                                    <span className="font-medium text-gray-700 mr-2">{card.front}</span>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm" 
+                                    <span className="font-medium text-gray-700 mr-2">
+                                      {card.front}
+                                    </span>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
                                       className="rounded-full p-1"
                                       onClick={() => {
                                         if (isSpeaking) {
@@ -687,13 +755,22 @@ export default function FlashcardView({ deck }: { deck: DeckInput }) {
                                         }
                                       }}
                                     >
-                                      <Volume2 size={14} className={isSpeaking ? 'text-blue-600' : ''} />
+                                      <Volume2
+                                        size={14}
+                                        className={
+                                          isSpeaking ? "text-blue-600" : ""
+                                        }
+                                      />
                                     </Button>
                                   </div>
                                 </div>
                                 <div className="p-5">
-                                  <h3 className="text-sm font-medium text-gray-500 mb-2">Answer</h3>
-                                  <p className="p-3 bg-green-50 rounded">{card.back}</p>
+                                  <h3 className="text-sm font-medium text-gray-500 mb-2">
+                                    Answer
+                                  </h3>
+                                  <p className="p-3 bg-green-50 rounded">
+                                    {card.back}
+                                  </p>
                                 </div>
                               </div>
                             ))}
@@ -710,15 +787,20 @@ export default function FlashcardView({ deck }: { deck: DeckInput }) {
                         </h3>
                         <div className="space-y-4">
                           {cardsWithMastery
-                            .filter(card => card.masteryStatus === 'learning')
+                            .filter((card) => card.masteryStatus === "learning")
                             .map((card) => (
-                              <div key={card._id} className={`border-l-4 ${getMasteryColorClass('learning')} rounded-lg shadow overflow-hidden`}>
+                              <div
+                                key={card._id}
+                                className={`border-l-4 ${getMasteryColorClass("learning")} rounded-lg shadow overflow-hidden`}
+                              >
                                 <div className="bg-yellow-50 p-4 flex items-center">
                                   <div className="flex items-center">
-                                    <span className="font-medium text-gray-700 mr-2">{card.front}</span>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm" 
+                                    <span className="font-medium text-gray-700 mr-2">
+                                      {card.front}
+                                    </span>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
                                       className="rounded-full p-1"
                                       onClick={() => {
                                         if (isSpeaking) {
@@ -728,20 +810,28 @@ export default function FlashcardView({ deck }: { deck: DeckInput }) {
                                         }
                                       }}
                                     >
-                                      <Volume2 size={14} className={isSpeaking ? 'text-blue-600' : ''} />
+                                      <Volume2
+                                        size={14}
+                                        className={
+                                          isSpeaking ? "text-blue-600" : ""
+                                        }
+                                      />
                                     </Button>
                                   </div>
                                 </div>
                                 <div className="p-5">
-                                  <h3 className="text-sm font-medium text-gray-500 mb-2">Answer</h3>
-                                  <p className="p-3 bg-yellow-50 rounded">{card.back}</p>
+                                  <h3 className="text-sm font-medium text-gray-500 mb-2">
+                                    Answer
+                                  </h3>
+                                  <p className="p-3 bg-yellow-50 rounded">
+                                    {card.back}
+                                  </p>
                                 </div>
                               </div>
                             ))}
                         </div>
                       </div>
                     )}
-
 
                     {/* not learned cards section */}
                     {notLearnedCount > 0 && (
@@ -752,15 +842,22 @@ export default function FlashcardView({ deck }: { deck: DeckInput }) {
                         </h3>
                         <div className="space-y-4">
                           {cardsWithMastery
-                            .filter(card => card.masteryStatus === 'not-learned')
+                            .filter(
+                              (card) => card.masteryStatus === "not-learned",
+                            )
                             .map((card) => (
-                              <div key={card._id} className={`border-l-4 ${getMasteryColorClass('not-learned')} rounded-lg shadow overflow-hidden`}>
+                              <div
+                                key={card._id}
+                                className={`border-l-4 ${getMasteryColorClass("not-learned")} rounded-lg shadow overflow-hidden`}
+                              >
                                 <div className="bg-gray-50 p-4 flex items-center">
                                   <div className="flex items-center">
-                                    <span className="font-medium text-gray-700 mr-2">{card.front}</span>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm" 
+                                    <span className="font-medium text-gray-700 mr-2">
+                                      {card.front}
+                                    </span>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
                                       className="rounded-full p-1"
                                       onClick={() => {
                                         if (isSpeaking) {
@@ -770,13 +867,22 @@ export default function FlashcardView({ deck }: { deck: DeckInput }) {
                                         }
                                       }}
                                     >
-                                      <Volume2 size={14} className={isSpeaking ? 'text-blue-600' : ''} />
+                                      <Volume2
+                                        size={14}
+                                        className={
+                                          isSpeaking ? "text-blue-600" : ""
+                                        }
+                                      />
                                     </Button>
                                   </div>
                                 </div>
                                 <div className="p-5">
-                                  <h3 className="text-sm font-medium text-gray-500 mb-2">Answer</h3>
-                                  <p className="p-3 bg-gray-50 rounded">{card.back}</p>
+                                  <h3 className="text-sm font-medium text-gray-500 mb-2">
+                                    Answer
+                                  </h3>
+                                  <p className="p-3 bg-gray-50 rounded">
+                                    {card.back}
+                                  </p>
                                 </div>
                               </div>
                             ))}
@@ -791,7 +897,9 @@ export default function FlashcardView({ deck }: { deck: DeckInput }) {
         </>
       ) : (
         <div className="text-center py-12">
-          <p className="text-lg mb-4">This deck doesn&apos;t have any flashcards yet.</p>
+          <p className="text-lg mb-4">
+            This deck doesn&apos;t have any flashcards yet.
+          </p>
           <Button asChild>
             <Link href={`/user/flashcard-library/${deck._id}/edit`}>
               Add Flashcards

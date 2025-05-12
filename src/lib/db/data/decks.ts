@@ -327,8 +327,9 @@ export async function getPublicDecks(): Promise<Deck[]> {
   let decksList;
   try {
     decksList = await deckCollection
-      .find({ public: true })
+      .find({ published: true })
       .toArray();
+
   } catch {
     throw new Error("Failed to get public decks");
   }
