@@ -1,12 +1,12 @@
 import DeckExplorerClient from './DeckExplorerClient';
 import {getPublicDecks} from "@/lib/deckForms";
 import { Deck } from "@/lib/db/data/schema";
-import { SerializedDeck, serializeDeck } from "@/lib/db/data/serialize";
+import { SerializedDeck, serializeDeck2 } from "@/lib/db/data/serialize";
 
 
 export default async function DeckExplorerPage() {
   const decks: Deck[] = await getPublicDecks();
-  const serializedDecks: SerializedDeck[] = decks.map(serializeDeck);
+  const serializedDecks: SerializedDeck[] = decks.map(serializeDeck2);
 
   return (
     <div className="px-6 py-8">

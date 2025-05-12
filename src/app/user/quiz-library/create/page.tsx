@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertCircle } from "lucide-react";
+import { QuizCreateSchema } from "@/lib/db/data/safeSchema";
+import * as Yup from "yup";
 
 interface QuizForm {
   name: string;

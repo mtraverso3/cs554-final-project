@@ -4,26 +4,22 @@ import React, { useState, useMemo } from "react";
 import DeckCard from "@/app/user/explore/decks/DeckCard";
 import type { SerializedDeck } from '@/lib/db/data/serialize';
 
-interface DeckExplorerClientProps {
-  decks: SerializedDeck[];
-}
 
-export default function PublicDeckExplorerClient({ decks }: DeckExplorerClientProps) {
-
-  const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('All');
-  const [sortBy, setSortBy] = useState<'title' | 'createdAt'>('title');
+export default function PublicDeckExplorerClient({ decks }: { decks: SerializedDeck[]; }) {
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("All");
+  const [sortBy, setSortBy] = useState<"title" | "createdAt">("title");
 
   const categories = useMemo(() => {
-    const cats = new Set(decks.map(d => d.category));
-    return ['All', ...Array.from(cats).sort()];
+    const cats = new Set(decks.map((d) => d.category));
+    return ["All", ...Array.from(cats).sort()];
   }, [decks]);
 
   // apply search, filter, sort
   const filtered = useMemo(() => {
     return decks
-      .filter(d => {
-        if (category !== 'All' && d.category !== category) return false;
+      .filter((d) => {
+        if (category !== "All" && d.category !== category) return false;
         const q = search.toLowerCase();
         return (
           d.name.toLowerCase().includes(q) ||
@@ -31,12 +27,11 @@ export default function PublicDeckExplorerClient({ decks }: DeckExplorerClientPr
         );
       })
       .sort((a, b) => {
-        if (sortBy === 'title') {
+        if (sortBy === "title") {
           return a.name.localeCompare(b.name);
         } else {
           return (
-            new Date(b.createdAt).getTime() -
-            new Date(a.createdAt).getTime()
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           );
         }
       });
@@ -49,16 +44,16 @@ export default function PublicDeckExplorerClient({ decks }: DeckExplorerClientPr
           type="text"
           placeholder="Search by title or description…"
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={(e) => setSearch(e.target.value)}
           className="flex-1 border rounded px-4 py-2 focus:outline-none focus:ring"
         />
 
         <select
           value={category}
-          onChange={e => setCategory(e.target.value)}
+          onChange={(e) => setCategory(e.target.value)}
           className="border rounded px-4 py-2 focus:outline-none focus:ring"
         >
-          {categories.map(cat => (
+          {categories.map((cat) => (
             <option key={cat} value={cat}>
               {cat}
             </option>
@@ -67,7 +62,7 @@ export default function PublicDeckExplorerClient({ decks }: DeckExplorerClientPr
 
         <select
           value={sortBy}
-          onChange={e => setSortBy(e.target.value as 'title' | 'createdAt')}
+          onChange={(e) => setSortBy(e.target.value as "title" | "createdAt")}
           className="border rounded px-4 py-2 focus:outline-none focus:ring"
         >
           <option value="title">Sort by Title (A→Z)</option>
@@ -77,8 +72,8 @@ export default function PublicDeckExplorerClient({ decks }: DeckExplorerClientPr
 
       {filtered.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map(deck => (
-            <div key={deck._id} >
+          {filtered.map((deck) => (
+            <div key={deck._id}>
               <DeckCard deck={deck} />
             </div>
           ))}

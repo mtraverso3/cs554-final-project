@@ -1,9 +1,9 @@
 "use server";
 
-import { getDeckById } from "@/lib/db/data/decks";
 import { authenticateUser } from "@/lib/auth/auth";
-import { Deck, User } from "@/lib/db/data/schema";
+import { Deck } from "@/lib/db/data/schema";
 import FlashcardView from "./FlashcardView";
+import { getDeck } from "@/lib/deckForms";
 
 function serializeDeck(deck: Deck) {
   return {
@@ -40,18 +40,7 @@ function serializeDeck(deck: Deck) {
   };
 }
 
-async function getDeck(id: string): Promise<Deck> {
-  "use server";
-  const userObject: User = await authenticateUser();
 
-  const deck: Deck = await getDeckById(id);
-
-  if (!deck.ownerId.equals(userObject._id)) {
-    throw new Error("Not Authorized");
-  }
-
-  return deck;
-}
 
 export default async function ViewDeckPage({
   params,
@@ -62,7 +51,10 @@ export default async function ViewDeckPage({
   try {
     const deck: Deck = await getDeck(deckId);
 
-    return <FlashcardView deck={serializeDeck(deck)} />;
+    const userObject = await authenticateUser();
+    const isOwner = userObject._id.toString() === deck.ownerId.toString();
+
+    return <FlashcardView deck={serializeDeck(deck)} isOwner={isOwner} />;
   } catch (error) {
     if (error instanceof Error) {
       return (
