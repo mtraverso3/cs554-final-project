@@ -4,6 +4,7 @@ import { getUserById } from "./users";
 import {CommentSchema, Comment, Deck, DeckSchema, StudyProgress, Flashcard} from "./schema";
 import {StudyProgressData} from "@/lib/deckForms";
 import { redisClient } from "@/lib/db/config/redisConnection";
+import { serializeDeck, deserializeDeck } from "@/lib/db/data/serialize";
 
 
 export async function createDeck(
@@ -31,13 +32,17 @@ export async function createDeck(
   };
 
   newDeck = await DeckSchema.validate(newDeck);
-
-  const deckCollection: Collection<Deck> = await decks();
-  const insertInfo = await deckCollection.insertOne(newDeck);
-  if (!insertInfo.acknowledged || !insertInfo.insertedId) {
-    throw new Error("Error inserting new deck");
+  try {
+    const deckCollection: Collection<Deck> = await decks();
+    const insertInfo = await deckCollection.insertOne(newDeck);
+    if (!insertInfo.acknowledged || !insertInfo.insertedId) {
+      throw new Error("Error inserting new deck");
+    }
+    return newDeck;
+  } finally {
+      const client = await redisClient();
+      await client.del(`decks:user:${userId}`);
   }
-  return newDeck;
 }
 
 
@@ -81,6 +86,10 @@ export async function updateDeck(
       success: false,
       error: error instanceof Error ? error.message : "Unknown error"
     });
+  } finally {
+    const client = await redisClient();
+    await client.del(`deck:${deckId}`);
+    await client.del(`decks:user:${userId}`);
   }
 }
 
@@ -105,6 +114,10 @@ export async function deleteDeck(deckId: string, userId: string): Promise<string
       success: false,
       error: error instanceof Error ? error.message : "Unknown error"
     });
+  } finally {
+    const client = await redisClient();
+    await client.del(`deck:${deckId}`);
+    await client.del(`decks:user:${userId}`);
   }
 }
 
@@ -160,6 +173,10 @@ export async function saveStudyProgress(
       success: false,
       error: error instanceof Error ? error.message : "Unknown error"
     });
+  } finally {
+    const client = await redisClient();
+    await client.del( `deck:${deckId}`);
+    await client.del(`decks:user:${userId}`);
   }
 }
 export async function getDeckById(id: string): Promise<Deck> {
@@ -172,32 +189,7 @@ export async function getDeckById(id: string): Promise<Deck> {
   const cacheKey = `deck:${id}`;
   const cachedDeck = await client.get(cacheKey);
   if (cachedDeck) {
-    const parsed = JSON.parse(cachedDeck);
-    // Rehydrate ObjectId and Date fields
-    parsed._id = new ObjectId(parsed._id);
-    parsed.ownerId = new ObjectId(parsed.ownerId);
-    parsed.createdAt = new Date(parsed.createdAt);
-    parsed.lastStudied = new Date(parsed.lastStudied);
-    parsed.comments = parsed.comments.map(
-      (c: {
-        ownerId: number;
-        text: string;
-        createdAt: string | number | Date;
-      }) => ({
-        ownerId: new ObjectId(c.ownerId),
-        text: c.text,
-        createdAt: new Date(c.createdAt),
-      }),
-    );
-    parsed.flashcardList = parsed.flashcardList.map(
-      (f: { _id: number; deckId: number; front: string; back: string }) => ({
-        _id: new ObjectId(f._id),
-        deckId: new ObjectId(f.deckId),
-        front: f.front,
-        back: f.back,
-      }),
-    );
-    return parsed;
+    return deserializeDeck(cachedDeck);
   }
 
   const deckCollection = await decks();
@@ -213,8 +205,7 @@ export async function getDeckById(id: string): Promise<Deck> {
     throw new Error("Deck not found");
   }
 
-  // Cache the fresh deck in Redis (expires in 60s)
-  await client.set(cacheKey, JSON.stringify(deck), { EX: 3600 });
+  await client.set(cacheKey, serializeDeck(deck), { EX: 3600 });
   return deck;
 }
 
@@ -223,6 +214,14 @@ export async function getDecksByUserId(
 ): Promise<Deck[]> {
   if (!ObjectId.isValid(userId)) {
     throw new Error("Invalid ObjectId");
+  }
+
+  const client = await redisClient();
+  const cacheKey = `decks:user:${userId}`;
+  const cached = await client.get(cacheKey);
+  if (cached) {
+    const serializedArray: string[] = JSON.parse(cached);
+    return serializedArray.map(s => deserializeDeck(s));
   }
 
   const deckCollection = await decks();
@@ -237,6 +236,9 @@ export async function getDecksByUserId(
   if (!decksList) {
     throw new Error("Decks not found");
   }
+  // Cache the fresh list in Redis (expires in 3600s)
+  const serializedList = decksList.map(serializeDeck);
+  await client.set(cacheKey, JSON.stringify(serializedList), { EX: 3600 });
   return decksList;
 }
 
