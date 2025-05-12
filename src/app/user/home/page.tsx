@@ -302,6 +302,7 @@ export default function UserHome() {
           {recentDecks.map((deck) => (
             <Card key={deck._id.toString()} className="h-full">
               <CardHeader className="pb-2">
+
                 <div className="flex justify-between items-start">
                   <div>
                     <CardTitle className="line-clamp-1">{deck.name}</CardTitle>
@@ -392,12 +393,20 @@ export default function UserHome() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {recentQuizzes.map((quiz) => (
             <Card key={quiz._id.toString()} className="h-full">
-              <CardHeader>
-                <CardTitle className="line-clamp-1">{quiz.name}</CardTitle>
-                <CardDescription>
-                  {quiz.questionsList.length} flashcards • Created on{" "}
-                  {quiz.createdAt.toLocaleDateString()}
-                </CardDescription>
+              <CardHeader className="pb-2">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="line-clamp-1">{quiz.name}</CardTitle>
+                    <CardDescription>
+                      {quiz.questionsList.length} flashcards • Created on{" "}
+                      {quiz.createdAt.toLocaleDateString()}
+                    </CardDescription>
+                  </div>
+
+                  <div className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
+                    {quiz.category}
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <p className="line-clamp-2 text-muted-foreground mb-3">

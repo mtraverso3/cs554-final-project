@@ -9,34 +9,36 @@ import { Plus, Trash2, X, Check, ArrowLeft, AlertCircle, HelpCircle } from "luci
 import { updateQuiz } from "@/lib/quizForms";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { QuizInput, QuizInputEntry, QuizInputSchema } from "@/lib/db/data/safeSchema";
+import * as Yup from "yup"; // safe for front end
 
-type QuizAnswer = {
-  answer: string;
-  isCorrect: boolean;
-};
+// type QuizAnswer = {
+//   answer: string;
+//   isCorrect: boolean;
+// };
+//
+// type QuizQuestion = {
+//   question: string;
+//   answers: QuizAnswer[];
+// };
+//
+// type QuizDTO = {
+//   _id: string;
+//   ownerId: string;
+//   name: string;
+//   description: string;
+//   category: string;
+//   createdAt: string;
+//   lastStudied: string;
+//   questionsList: QuizQuestion[];
+// };
 
-type QuizQuestion = {
-  question: string;
-  answers: QuizAnswer[];
-};
-
-type QuizDTO = {
-  _id: string;
-  ownerId: string;
-  name: string;
-  description: string;
-  category: string;
-  createdAt: string;
-  lastStudied: string;
-  questionsList: QuizQuestion[];
-};
-
-export default function EditQuizForm({ quiz }: { quiz: QuizDTO }) {
+export default function EditQuizForm({ quiz }: { quiz: QuizInput }) {
   const router = useRouter();
   const [name, setName] = useState(quiz.name);
   const [description, setDescription] = useState(quiz.description);
   const [category, setCategory] = useState(quiz.category);
-  const [questions, setQuestions] = useState<QuizQuestion[]>(
+  const [questions, setQuestions] = useState<QuizInputEntry[]>(
     quiz.questionsList.length > 0
       ? quiz.questionsList.map(question => ({
           question: question.question,
@@ -56,7 +58,7 @@ export default function EditQuizForm({ quiz }: { quiz: QuizDTO }) {
         }]
   );
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string[] | null>(null);
   const [showHelp, setShowHelp] = useState(false);
 
   const addQuestion = () => {
@@ -112,64 +114,28 @@ export default function EditQuizForm({ quiz }: { quiz: QuizDTO }) {
     setQuestions(updatedQuestions);
   };
 
-  const validateForm = (): boolean => {
-    if (!name.trim()) {
-      setError("Quiz name is required");
-      return false;
-    }
-
-    if (!description.trim()) {
-      setError("Quiz description is required");
-      return false;
-    }
-
-    if (!category.trim()) {
-      setError("Category is required");
-      return false;
-    }
-
-    if (questions.length === 0) {
-      setError("At least one question is required");
-      return false;
-    }
-
-    for (let i = 0; i < questions.length; i++) {
-      const question = questions[i];
-
-      if (!question.question.trim()) {
-        setError(`Question ${i + 1} text is required`);
-        return false;
-      }
-
-      if (question.answers.length < 2) {
-        setError(`Question ${i + 1} must have at least 2 answers`);
-        return false;
-      }
-
-      for (let j = 0; j < question.answers.length; j++) {
-        if (!question.answers[j].answer.trim()) {
-          setError(`Answer ${j + 1} for question ${i + 1} is required`);
-          return false;
-        }
-      }
-
-      const hasCorrectAnswer = question.answers.some(answer => answer.isCorrect);
-      if (!hasCorrectAnswer) {
-        setError(`Question ${i + 1} must have at least one correct answer`);
-        return false;
-      }
-    }
-
-    return true;
-  };
 
   const handleSave = async () => {
-    if (!validateForm()) {
-      return;
-    }
 
     setSaving(true);
-    setError(null);
+    const formData = {
+      _id: quiz._id.toString(),
+      name,
+      description,
+      category: quiz.category, // assuming category is not editable
+      questionsList: questions,
+      attempts: quiz.attempts,
+    };
+    try {
+      await QuizInputSchema.validate(formData, { abortEarly: false });
+      setError(null);
+    } catch (validationError) {
+      if (validationError instanceof Yup.ValidationError) {
+        setError(validationError.errors);
+        setSaving(false);
+        return;
+      }
+    }
 
     try {
       const result = await updateQuiz(
@@ -188,9 +154,10 @@ export default function EditQuizForm({ quiz }: { quiz: QuizDTO }) {
       }
     } catch (error) {
       console.error("Error saving quiz:", error);
-      setError("An unexpected error occurred");
+      setError(["An unexpected error occurred"]);
     } finally {
       setSaving(false);
+      setError(null);
     }
   };
 
@@ -234,11 +201,16 @@ export default function EditQuizForm({ quiz }: { quiz: QuizDTO }) {
       )}
 
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6" role="alert">
-          <div className="flex items-center">
-            <AlertCircle className="mr-2" size={18} />
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded space-y-1" role="alert">
+          {Array.isArray(error) ? (
+            <ul className="list-disc list-inside text-sm">
+              {error.map((errMsg, idx) => (
+                <li key={idx}>{errMsg}</li>
+              ))}
+            </ul>
+          ) : (
             <span className="block sm:inline">{error}</span>
-          </div>
+          )}
         </div>
       )}
 

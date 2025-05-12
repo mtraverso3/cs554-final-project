@@ -35,6 +35,18 @@ export async function signup(first: string, last: string): Promise<User> {
   return user;
 }
 
+export async function getQuiz(id: string): Promise<Quiz> {
+  const userObject: User = await authenticateUser();
+
+  const quiz: Quiz = await getQuizById(id);
+
+  if (!quiz.ownerId.equals(userObject._id)) {
+    throw new Error("Not Authorized");
+  }
+
+  return quiz;
+}
+
 export async function addDeck(
   name: string,
   description: string,

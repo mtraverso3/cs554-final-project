@@ -21,7 +21,7 @@ export default function CreateQuiz() {
     category: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string[] | null>(null);
 
   const handleInputChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -32,21 +32,15 @@ export default function CreateQuiz() {
 
   const finishQuiz = async () => {
     setError(null);
-    
-    if (!quizInfo.name.trim()) {
-      setError("Quiz name is required");
-      return;
+    try {
+      await QuizCreateSchema.validate(quizInfo, { abortEarly: false });
+    } catch (validationError) {
+      if (validationError instanceof Yup.ValidationError) {
+        setError(validationError.errors); // Or join all errors
+        return;
+      }
     }
-    
-    if (!quizInfo.description.trim()) {
-      setError("Description is required");
-      return;
-    }
-    
-    if (!quizInfo.category.trim()) {
-      setError("Category is required");
-      return;
-    }
+
     
     setIsSubmitting(true);
     
@@ -55,7 +49,7 @@ export default function CreateQuiz() {
       router.push("/user/quiz-library");
     } catch (error) {
       console.error(error);
-      setError(error instanceof Error ? error.message : "Error creating quiz");
+      setError([error instanceof Error ? error.message : "Error creating quiz"]);
     } finally {
       setIsSubmitting(false);
     }
@@ -64,13 +58,18 @@ export default function CreateQuiz() {
   return (
     <div className="container mx-auto py-8 px-6 max-w-lg">
       <h1 className="text-3xl font-bold mb-6">Create New Quiz</h1>
-      
+
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4" role="alert">
-          <div className="flex items-center">
-            <AlertCircle className="mr-2" size={18} />
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded space-y-1" role="alert">
+          {Array.isArray(error) ? (
+            <ul className="list-disc list-inside text-sm">
+              {error.map((errMsg, idx) => (
+                <li key={idx}>{errMsg}</li>
+              ))}
+            </ul>
+          ) : (
             <span className="block sm:inline">{error}</span>
-          </div>
+          )}
         </div>
       )}
       
