@@ -74,7 +74,7 @@ async function getDeck(id: string): Promise<Deck> {
 
   const deck: Deck = await getDeckById(id);
 
-  if (!deck.ownerId.equals(userObject._id)) {
+  if (!deck.ownerId.equals(userObject._id) && !deck.published) {
     throw new Error("Not Authorized");
   }
 
@@ -84,9 +84,9 @@ async function getDeck(id: string): Promise<Deck> {
 export default async function StudyPage({
   params,
 }: {
-  params: { deckId: string };
+  params: Promise<{ deckId: string }>;
 }) {
-  const { deckId } = params;
+  const { deckId } = await params;
   try {
     const deck: Deck = await getDeck(deckId);
 

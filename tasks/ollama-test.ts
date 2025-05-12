@@ -1,5 +1,5 @@
 import { deckToQuiz } from '@/lib/ollama/ollama'
-import { Deck, QuizEntry } from "@/lib/db/data/schema";
+import {Deck, QuizEntry, StudyProgress} from "@/lib/db/data/schema";
 import { ObjectId } from "mongodb";
 
 async function main() {
@@ -32,6 +32,10 @@ async function main() {
     createdAt: new Date(),
     lastStudied: new Date(),
     category: "Sample Category",
+    studyProgress: {} as StudyProgress,
+    likes: [],
+    comments: [],
+    published: false,
   };
 
   try {

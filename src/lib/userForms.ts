@@ -1,9 +1,10 @@
 "use server";
 
+
 import { authenticateUser, auth0} from "@/lib/auth/auth";
-//import * as users from "@/lib/db/data/users";
 import {User} from "@/lib/db/data/schema";
 import * as userData from "@/lib/db/data/users";
+
 
 export async function signup(first: string, last: string, profilePicture: File): Promise<User> {
   const session = await auth0.getSession();

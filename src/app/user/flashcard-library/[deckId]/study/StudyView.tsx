@@ -1,18 +1,16 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  Shuffle, 
-  ArrowLeft, 
-  Home, 
-  Settings, 
-  Volume2, 
-  History, 
-  Timer, 
-  RefreshCw, 
-  LayoutGrid,
+import { useState, useEffect, useRef, useCallback } from "react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Shuffle,
+  ArrowLeft,
+  Home,
+  Settings,
+  Volume2,
+  History,
+  RefreshCw,
   XCircle,
   Pause,
   Play,
@@ -20,19 +18,18 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
-  DialogClose,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { saveStudyProgress } from "@/lib/deckForms";
+import { StudyProgressSchema } from "@/lib/db/data/safeSchema";
+import * as Yup from "yup";
 
 type FlashcardDTO = {
   _id: string;
@@ -70,8 +67,14 @@ type CardAnswer = {
   timestamp: Date;
 };
 
+type CardMasteryStatus = "mastered" | "learning" | "not-learned";
+type CardWithMastery = {
+  cardId: string;
+  status: CardMasteryStatus;
+  reviewCount: number;
+};
+
 export default function StudyView({ deck }: { deck: DeckDTO }) {
-  const router = useRouter();
   const [cards, setCards] = useState<FlashcardDTO[]>([]);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -90,12 +93,51 @@ export default function StudyView({ deck }: { deck: DeckDTO }) {
   const [studyTime, setStudyTime] = useState(0);
   const [isTimerActive, setIsTimerActive] = useState(true);
   const [showBreakReminder, setShowBreakReminder] = useState(false);
-  const [spacedRepetition, setSpacedRepetition] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const [previousCardIndex, setPreviousCardIndex] = useState<number | null>(null);
   const [previousCardResponses, setPreviousCardResponses] = useState<{[key: string]: boolean}>({});
   const [showNotification, setShowNotification] = useState(false);
   const [showResumeDialog, setShowResumeDialog] = useState(false);
+  const [cardMasteryData, setCardMasteryData] = useState<Record<string, CardWithMastery>>({});
+  const [showSettings, setShowSettings] = useState(false);
+  const [error, setError] = useState<string[] | null>(null);
+
+
+  const loadCardMasteryData = useCallback(() => {
+    try {
+      const storedData = localStorage.getItem(`deck-${deck._id}-mastery`);
+
+      if (storedData) {
+        const parsedData = JSON.parse(storedData) as Record<string, CardWithMastery>;
+        setCardMasteryData(parsedData);
+      } else {
+        const initialData: Record<string, CardWithMastery> = {};
+
+        deck.flashcardList.forEach(card => {
+          initialData[card._id] = {
+            cardId: card._id,
+            status: 'not-learned',
+            reviewCount: 0
+          };
+        });
+
+        setCardMasteryData(initialData);
+        localStorage.setItem(`deck-${deck._id}-mastery`, JSON.stringify(initialData));
+      }
+    } catch (error) {
+      console.error("Failed to load mastery data:", error);
+      const initialData: Record<string, CardWithMastery> = {};
+
+      deck.flashcardList.forEach(card => {
+        initialData[card._id] = {
+          cardId: card._id,
+          status: 'not-learned',
+          reviewCount: 0
+        };
+      });
+
+      setCardMasteryData(initialData);
+    }
+  }, [deck._id, deck.flashcardList]);
 
   useEffect(() => {
     if (deck && deck.flashcardList.length > 0) {
@@ -110,68 +152,109 @@ export default function StudyView({ deck }: { deck: DeckDTO }) {
         
         setShowResumeDialog(true);
       }
+      
+      loadCardMasteryData();
     }
-  }, [deck]);
+  }, [deck, loadCardMasteryData]);
+
+
+
+  const updateCardMasteryStatus = useCallback((cardId: string, isCorrect: boolean) => {
+    setCardMasteryData(prev => {
+      const updatedData = { ...prev };
+      const currentCardData = updatedData[cardId] || {
+        cardId,
+        status: 'not-learned',
+        reviewCount: 0
+      };
+
+      const newCount = currentCardData.reviewCount + 1;
+      let newStatus: CardMasteryStatus = currentCardData.status;
+
+      if (isCorrect) {
+        if (currentCardData.status === 'not-learned') {
+          newStatus = 'learning';
+        } else if (currentCardData.status === 'learning') {
+          newStatus = 'mastered';
+        }
+      } else {
+        if (currentCardData.status === 'mastered') {
+          newStatus = 'learning';
+        } else if (currentCardData.status === 'learning') {
+          newStatus = 'not-learned';
+        }
+      }
+
+      updatedData[cardId] = {
+        cardId,
+        status: newStatus,
+        reviewCount: newCount
+      };
+      localStorage.setItem(`deck-${deck._id}-mastery`, JSON.stringify(updatedData));
+
+      return updatedData;
+    });
+  }, [deck._id]);
 
 const restoreProgress = () => {
   if (deck.studyProgress) {
     if (deck.studyProgress.isCompleted && !deck.studyProgress.isReviewMode) {
-      setKnownCards(deck.flashcardList.filter(card => 
+      setKnownCards(deck.flashcardList.filter(card =>
         deck.studyProgress?.knownCardIds.includes(card._id)));
-      
-      setUnknownCards(deck.flashcardList.filter(card => 
+
+      setUnknownCards(deck.flashcardList.filter(card =>
         deck.studyProgress?.unknownCardIds.includes(card._id)));
-        
+
       setStudyComplete(true);
       setStudyTime(deck.studyProgress.studyTime);
       setCardHistory(generateHistoryFromIds(deck.studyProgress.knownCardIds, deck.studyProgress.unknownCardIds));
       setShowResumeDialog(false);
       return;
     }
-    
+
     if (deck.studyProgress.isReviewMode && deck.studyProgress.reviewingCardIds.length > 0) {
-      const reviewCards = deck.flashcardList.filter(card => 
+      const reviewCards = deck.flashcardList.filter(card =>
         deck.studyProgress?.reviewingCardIds.includes(card._id));
-      
+
       setCards(reviewCards);
     }
-    
+
     const validIndex = Math.min(
       deck.studyProgress.currentCardIndex,
-      deck.studyProgress.isReviewMode ? 
-        deck.studyProgress.reviewingCardIds.length - 1 : 
+      deck.studyProgress.isReviewMode ?
+        deck.studyProgress.reviewingCardIds.length - 1 :
         deck.flashcardList.length - 1
     );
-    
+
     setCurrentCardIndex(validIndex);
-    
+
     if (deck.studyProgress.studyTime > 0) {
       setStudyTime(deck.studyProgress.studyTime);
     }
-    
+
     if (deck.studyProgress.knownCardIds.length > 0) {
-      const knownCardsList = deck.flashcardList.filter(card => 
+      const knownCardsList = deck.flashcardList.filter(card =>
         deck.studyProgress?.knownCardIds.includes(card._id));
       setKnownCards(knownCardsList);
     }
-    
+
     if (deck.studyProgress.unknownCardIds.length > 0) {
-      const unknownCardsList = deck.flashcardList.filter(card => 
+      const unknownCardsList = deck.flashcardList.filter(card =>
         deck.studyProgress?.unknownCardIds.includes(card._id));
       setUnknownCards(unknownCardsList);
     }
-    
+
     if (deck.studyProgress.knownCardIds.length > 0 || deck.studyProgress.unknownCardIds.length > 0) {
       setCardHistory(generateHistoryFromIds(deck.studyProgress.knownCardIds, deck.studyProgress.unknownCardIds));
     }
-    
+
     setShowResumeDialog(false);
   }
 };
 
 const generateHistoryFromIds = (knownIds: string[], unknownIds: string[]) => {
   const restoredHistory: CardAnswer[] = [];
-  
+
   deck.flashcardList.filter(card => knownIds.includes(card._id))
     .forEach(card => {
       restoredHistory.push({
@@ -180,7 +263,7 @@ const generateHistoryFromIds = (knownIds: string[], unknownIds: string[]) => {
         timestamp: new Date()
       });
     });
-  
+
   deck.flashcardList.filter(card => unknownIds.includes(card._id))
     .forEach(card => {
       restoredHistory.push({
@@ -189,13 +272,13 @@ const generateHistoryFromIds = (knownIds: string[], unknownIds: string[]) => {
         timestamp: new Date()
       });
     });
-  
+
   return restoredHistory;
 };
 
-  const declineRestore = () => {
-    setShowResumeDialog(false);
-  };
+  // const declineRestore = () => {
+  //   setShowResumeDialog(false);
+  // };
 
 useEffect(() => {
   const saveProgress = async () => {
@@ -204,48 +287,57 @@ useEffect(() => {
         const knownCardIds = knownCards.map(card => card._id);
         const unknownCardIds = unknownCards.map(card => card._id);
         const reviewingCardIds = cards.map(card => card._id);
-        
-        await saveStudyProgress(deck._id, {
-          currentCardIndex,
-          knownCardIds,
-          unknownCardIds,
-          lastPosition: currentCardIndex,
-          studyTime,
-          isReviewMode: cards.length !== deck.flashcardList.length,
-          isCompleted: studyComplete,
-          reviewingCardIds
-        });
+        try{
+          const progress = StudyProgressSchema.validateSync({
+            currentCardIndex,
+            knownCardIds,
+            unknownCardIds,
+            lastPosition: currentCardIndex,
+            studyTime,
+            isReviewMode: cards.length !== deck.flashcardList.length,
+            isCompleted: studyComplete,
+            reviewingCardIds
+          });
+          await saveStudyProgress(deck._id, progress);
+
+        }catch (error) {
+          if (error instanceof Yup.ValidationError) {
+            setError(error.errors); // Or join all errors
+            return;
+          }
+        }
       } catch (error) {
         console.error("Failed to save progress:", error);
+        setError(["Failed to save progress"]);
       }
     }
   };
-  
+
   const saveInterval = setInterval(saveProgress, 30000);
-  
+
   return () => {
     clearInterval(saveInterval);
     saveProgress();
   };
-}, [currentCardIndex, knownCards, unknownCards, studyTime, cards.length, studyComplete, deck._id, cards]);
+}, [currentCardIndex, knownCards, unknownCards, studyTime, cards.length, studyComplete, deck._id, cards, deck.flashcardList.length]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    
+
     if (isTimerActive && !studyComplete) {
       interval = setInterval(() => {
         setStudyTime(prev => {
           const newTime = prev + 1;
-          
+
           if (newTime % 900 === 0) {
             setShowBreakReminder(true);
           }
-          
+
           return newTime;
         });
       }, 1000);
     }
-    
+
     return () => clearInterval(interval);
   }, [isTimerActive, studyComplete]);
 
@@ -259,25 +351,29 @@ useEffect(() => {
     setPreviousCardIndex(null);
     setPreviousCardResponses({});
     setCards([...deck.flashcardList]);
-    
-    saveStudyProgress(
-      deck._id,
-      {
-        currentCardIndex: 0,
+    try{
+      const progress = StudyProgressSchema.validateSync({
+        currentCardIndex,
         knownCardIds: [],
         unknownCardIds: [],
-        lastPosition: 0,
-        studyTime: 0,
-        isReviewMode: false,
-        isCompleted: false,
-        reviewingCardIds: []
-      },
-      true
-    );
-    
+        lastPosition: currentCardIndex,
+        studyTime,
+        isReviewMode: cards.length !== deck.flashcardList.length,
+        isCompleted: studyComplete,
+        reviewingCardIds:[]
+      });
+      saveStudyProgress(deck._id, progress, true);
+
+    }catch (error) {
+      if (error instanceof Yup.ValidationError) {
+        setError(error.errors); // Or join all errors
+        return;
+      }
+    }
+
     setShowResumeDialog(false);
   };
-  
+
 
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -291,12 +387,12 @@ useEffect(() => {
 
   const shuffleCards = () => {
     const cardsToShuffle = [...cards];
-  
+
     for (let i = cardsToShuffle.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [cardsToShuffle[i], cardsToShuffle[j]] = [cardsToShuffle[j], cardsToShuffle[i]];
     }
-    
+
     setShuffled(true);
     setCards(cardsToShuffle);
     setShowNotification(true);
@@ -308,7 +404,7 @@ useEffect(() => {
       ...knownCards.map(card => card._id),
       ...unknownCards.map(card => card._id)
     ]);
-    
+
     const currentCard = cards[currentCardIndex];
     const reorderedCards = [];
 
@@ -317,7 +413,7 @@ useEffect(() => {
         reorderedCards.push(card);
       }
     }
-    
+
     if (!answeredCardIds.has(currentCard._id)) {
       reorderedCards.push(currentCard);
     }
@@ -330,7 +426,7 @@ useEffect(() => {
 
     setShuffled(false);
     setCards(reorderedCards);
-    
+
     const newIndex = reorderedCards.findIndex(card => card._id === currentCard._id);
     setCurrentCardIndex(newIndex >= 0 ? newIndex : 0);
     setShowNotification(true);
@@ -350,33 +446,21 @@ useEffect(() => {
     setShowNotification(true);
     setTimeout(() => setShowNotification(false), 3000);
 
-    if (spacedRepetition && cardHistory.length > 0) {
-      const sortedCards = [...deck.flashcardList].sort((a, b) => {
-        const aKnowledge = cardHistory.filter(
-          h => h.card._id === a._id && h.known
-        ).length;
-        const bKnowledge = cardHistory.filter(
-          h => h.card._id === b._id && h.known
-        ).length;
-        
-        return aKnowledge - bKnowledge;
-      });
-      
-      setCards(sortedCards);
-    } else {
-      if (shuffled) {
-        const cardsToShuffle = [...deck.flashcardList];
-        
-        for (let i = cardsToShuffle.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [cardsToShuffle[i], cardsToShuffle[j]] = [cardsToShuffle[j], cardsToShuffle[i]];
+    const sortedCards = [...deck.flashcardList].sort((a, b) => {
+      const aMastery = cardMasteryData[a._id]?.status || 'not-learned';
+      const bMastery = cardMasteryData[b._id]?.status || 'not-learned';
+      const getMasteryValue = (status: CardMasteryStatus): number => {
+        switch (status) {
+          case 'not-learned': return 0;
+          case 'learning': return 1;
+          case 'mastered': return 2;
         }
-        
-        setCards(cardsToShuffle);
-      } else {
-        setCards([...deck.flashcardList]);
-      }
-    }
+      };
+
+      return getMasteryValue(aMastery) - getMasteryValue(bMastery);
+    });
+
+    setCards(sortedCards);
   };
 
   const toggleDefinitionFirst = () => {
@@ -384,42 +468,42 @@ useEffect(() => {
     setIsFlipped(false);
   };
 
-  const flipCard = () => {
+  const flipCard = useCallback(() => {
     if (!isAnimating) {
-      setIsFlipped(!isFlipped);
+      setIsFlipped(prev => !prev);
     }
-  };
+  }, [isAnimating]);
 
   const speakCardContent = () => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
-      
+
       if (cards.length === 0 || currentCardIndex >= cards.length) return;
-      
+
       const currentCard = cards[currentCardIndex];
-      
+
       let textToRead;
       if (showDefinitionFirst) {
         textToRead = isFlipped ? currentCard.front : currentCard.back;
       } else {
         textToRead = isFlipped ? currentCard.back : currentCard.front;
       }
-      
+
       setIsSpeaking(true);
-      
+
       const utterance = new SpeechSynthesisUtterance(textToRead);
       utterance.lang = 'en-US';
-      
+
       utterance.onend = () => {
         setIsSpeaking(false);
       };
-      
+
       window.speechSynthesis.speak(utterance);
     } else {
       alert("Sorry, your browser doesn't support text-to-speech!");
     }
   };
-  
+
   const stopSpeaking = () => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
@@ -427,70 +511,117 @@ useEffect(() => {
     }
   };
 
-  const markAsKnown = () => {
+  const moveToNextCard = useCallback(() => {
+    if (currentCardIndex >= cards.length - 1) {
+      setStudyComplete(true);
+      try{
+        const completeProgress = StudyProgressSchema.validateSync({
+          currentCardIndex,
+          knownCardIds: knownCards.map(card => card._id),
+          unknownCardIds: unknownCards.map(card => card._id),
+          lastPosition: currentCardIndex,
+          studyTime,
+          isReviewMode: cards.length !== deck.flashcardList.length,
+          isCompleted: true,
+          reviewingCardIds: cards.map(card => card._id)
+        });
+        saveStudyProgress(deck._id, completeProgress, false);
+
+      }catch (error) {
+        if (error instanceof Yup.ValidationError) {
+          setError(error.errors); // Or join all errors
+          return;
+        }
+      }
+
+    } else {
+      setCurrentCardIndex(prev => prev + 1);
+      setIsFlipped(false);
+
+      if (cardRef.current) {
+        cardRef.current.style.transform = "";
+        cardRef.current.style.opacity = "1";
+      }
+    }
+  }, [
+    currentCardIndex,
+    cards,
+    knownCards,
+    unknownCards,
+    studyTime,
+    deck._id,
+    deck.flashcardList.length
+  ]);
+
+  const markAsKnown = useCallback(() => {
     if (isAnimating || cards.length === 0) return;
-    
+
     setIsAnimating(true);
-    
+
     const currentCard = cards[currentCardIndex];
+
+    updateCardMasteryStatus(currentCard._id, true);
+
     setKnownCards(prev => [...prev, currentCard]);
     setPreviousCardIndex(currentCardIndex);
     setPreviousCardResponses(prev => ({
       ...prev,
       [currentCard._id]: true
     }));
-    
+
     setCardHistory(prev => [
-      ...prev, 
+      ...prev,
       { card: currentCard, known: true, timestamp: new Date() }
     ]);
-    
+
     if (cardRef.current) {
       cardRef.current.style.transform = "translateX(150%)";
       cardRef.current.style.opacity = "0";
     }
-    
+
     setTimeout(() => {
       moveToNextCard();
       setIsAnimating(false);
     }, 300);
-  };
+  }, [isAnimating, cards, currentCardIndex, updateCardMasteryStatus, moveToNextCard]);
 
-  const markAsUnknown = () => {
+  const markAsUnknown = useCallback(() => {
     if (isAnimating || cards.length === 0) return;
-    
+
     setIsAnimating(true);
-    
+
     const currentCard = cards[currentCardIndex];
+
+    updateCardMasteryStatus(currentCard._id, false);
+
     setUnknownCards(prev => [...prev, currentCard]);
-    
     setPreviousCardIndex(currentCardIndex);
     setPreviousCardResponses(prev => ({
       ...prev,
       [currentCard._id]: false
     }));
-    
+
     setCardHistory(prev => [
-      ...prev, 
+      ...prev,
       { card: currentCard, known: false, timestamp: new Date() }
     ]);
-    
+
     if (cardRef.current) {
       cardRef.current.style.transform = "translateX(-150%)";
       cardRef.current.style.opacity = "0";
     }
-    
+
     setTimeout(() => {
       moveToNextCard();
       setIsAnimating(false);
     }, 300);
-  };
-  
-  const goToPreviousCard = () => {
+  }, [isAnimating, cards, currentCardIndex, updateCardMasteryStatus, moveToNextCard]);
+
+  const goToPreviousCard = useCallback(() => {
     if (previousCardIndex === null || isAnimating || studyComplete) return;
-    
+
     setIsAnimating(true);
-    
+
     const previousCard = cards[previousCardIndex];
 
     if (previousCardResponses[previousCard._id]) {
@@ -498,48 +629,30 @@ useEffect(() => {
     } else {
       setUnknownCards(prev => prev.filter(card => card._id !== previousCard._id));
     }
-    
+
     setCardHistory(prev => prev.slice(0, -1));
     setCurrentCardIndex(previousCardIndex);
     setIsFlipped(false);
     setPreviousCardIndex(null);
-    
+
     if (cardRef.current) {
       cardRef.current.style.transform = "";
       cardRef.current.style.opacity = "1";
     }
-    
+
     setTimeout(() => {
       setIsAnimating(false);
     }, 300);
-  };
+  }, [
+    previousCardIndex,
+    isAnimating,
+    studyComplete,
+    cards,
+    previousCardResponses
+  ]);
 
-  const moveToNextCard = () => {
-    if (currentCardIndex >= cards.length - 1) {
-      setStudyComplete(true);
-      
-      saveStudyProgress(deck._id, {
-        currentCardIndex: currentCardIndex,
-        knownCardIds: knownCards.map(card => card._id),
-        unknownCardIds: unknownCards.map(card => card._id),
-        lastPosition: currentCardIndex,
-        studyTime: studyTime,
-        isReviewMode: cards.length !== deck.flashcardList.length,
-        isCompleted: true,
-        reviewingCardIds: cards.map(card => card._id)
-      }, false);
-    } else {
-      setCurrentCardIndex(prev => prev + 1);
-      setIsFlipped(false);
-      
-      if (cardRef.current) {
-        cardRef.current.style.transform = "";
-        cardRef.current.style.opacity = "1";
-      }
-    }
-  };
 
-  const handleMouseDown = (e: React.MouseEvent) => {
+  const handleMouseDown = () => {
     if (isAnimating || studyComplete) return;
     setIsDragging(true);
     setDragOffset(0);
@@ -547,22 +660,22 @@ useEffect(() => {
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging || isAnimating || studyComplete) return;
-    
+
     const newOffset = e.movementX;
     setDragOffset(prev => {
       const updatedOffset = prev + newOffset;
-      
+
       if (cardRef.current) {
         const rotation = updatedOffset * 0.05;
         cardRef.current.style.transform = `translateX(${updatedOffset}px) rotate(${rotation}deg)`;
-        
+
         if (updatedOffset > 0) {
           cardRef.current.style.boxShadow = `0 0 20px rgba(34, 197, 94, ${Math.min(Math.abs(updatedOffset) / 200, 0.6)})`;
         } else if (updatedOffset < 0) {
           cardRef.current.style.boxShadow = `0 0 20px rgba(239, 68, 68, ${Math.min(Math.abs(updatedOffset) / 200, 0.6)})`;
         }
       }
-      
+
       return updatedOffset;
     });
   };
@@ -570,7 +683,7 @@ useEffect(() => {
   const handleMouseUp = () => {
     if (!isDragging || isAnimating || studyComplete) return;
     setIsDragging(false);
-    
+
     if (Math.abs(dragOffset) > 100) {
       if (dragOffset > 0) {
         markAsKnown();
@@ -588,7 +701,7 @@ useEffect(() => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (studyComplete) return;
-      
+
       switch (e.key) {
         case "ArrowRight":
           markAsKnown();
@@ -612,11 +725,11 @@ useEffect(() => {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentCardIndex, isFlipped, isAnimating, studyComplete, previousCardIndex]);
+  }, [currentCardIndex, isFlipped, isAnimating, studyComplete, previousCardIndex, markAsKnown, markAsUnknown, flipCard, goToPreviousCard]);
 
   const restartWithUnknown = () => {
     const cardsToReview = [...unknownCards];
-    
+
     setCards(cardsToReview);
     setKnownCards([]);
     setUnknownCards([]);
@@ -628,10 +741,9 @@ useEffect(() => {
     setPreviousCardIndex(null);
     setPreviousCardResponses({});
     setIsTimerActive(true);
-    
-    saveStudyProgress(
-      deck._id,
-      {
+
+    try{
+      const unknownProgress = StudyProgressSchema.validateSync({
         currentCardIndex: 0,
         knownCardIds: [],
         unknownCardIds: [],
@@ -640,10 +752,17 @@ useEffect(() => {
         isReviewMode: true,
         isCompleted: false,
         reviewingCardIds: cardsToReview.map(card => card._id)
-      },
-      false
-    );
-    
+      });
+      saveStudyProgress(deck._id, unknownProgress, true);
+
+    }catch (error) {
+      if (error instanceof Yup.ValidationError) {
+        setError(error.errors); // Or join all errors
+        return;
+      }
+    }
+
+
     setShowNotification(true);
     setTimeout(() => setShowNotification(false), 3000);
   };
@@ -656,9 +775,9 @@ useEffect(() => {
 
   const getCurrentCardContent = (side: 'front' | 'back') => {
     if (cards.length === 0 || currentCardIndex >= cards.length) return "";
-    
+
     const currentCard = cards[currentCardIndex];
-    
+
     if (showDefinitionFirst) {
       return side === 'front' ? currentCard.back : currentCard.front;
     } else {
@@ -667,31 +786,85 @@ useEffect(() => {
   };
 
   const handleExit = async () => {
-    try {
-      await saveStudyProgress(
-        deck._id,
-        {
-          currentCardIndex,
-          knownCardIds: knownCards.map(card => card._id),
-          unknownCardIds: unknownCards.map(card => card._id),
-          lastPosition: currentCardIndex,
-          studyTime,
-          isReviewMode: cards.length !== deck.flashcardList.length,
-          isCompleted: studyComplete,
-          reviewingCardIds: cards.map(card => card._id)
-        },
-        false
-      );
-    } catch (error) {
-      console.error("Failed to save progress on exit:", error);
+    try{
+      const exitProgress = StudyProgressSchema.validateSync({
+        currentCardIndex,
+        knownCardIds: knownCards.map(card => card._id),
+        unknownCardIds: unknownCards.map(card => card._id),
+        lastPosition: currentCardIndex,
+        studyTime,
+        isReviewMode: cards.length !== deck.flashcardList.length,
+        isCompleted: studyComplete,
+        reviewingCardIds: cards.map(card => card._id)
+      });
+      await saveStudyProgress(deck._id, exitProgress, false);
+
+    }catch (error) {
+      if (error instanceof Yup.ValidationError) {
+        setError(error.errors || "failed to save progress"); // Or join all errors
+        return;
+      }
     }
   };
+
+  const getMasteryStats = () => {
+   let currentData: Record<string, CardWithMastery>;
+  
+   try {
+     const storedData = localStorage.getItem(`deck-${deck._id}-mastery`);
+     if (storedData) {
+       currentData = JSON.parse(storedData);
+     } else {
+       currentData = cardMasteryData;
+     }
+   } catch {
+     currentData = cardMasteryData;
+   }
+   
+   const stats = {
+     mastered: 0,
+     learning: 0,
+     notLearned: 0,
+     total: Object.keys(currentData).length
+   };
+   
+   Object.values(currentData).forEach(card => {
+     switch (card.status) {
+       case 'mastered':
+         stats.mastered++;
+         break;
+       case 'learning':
+         stats.learning++;
+         break;
+       case 'not-learned':
+         stats.notLearned++;
+         break;
+     }
+   });
+   
+   return stats;
+ };
+  
+  const masteryStats = getMasteryStats();
 
   if (cards.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-[70vh] text-center">
         <h2 className="text-2xl font-bold mb-4">No Flashcards to Study</h2>
-        <p className="text-gray-600 mb-6">This deck doesn't have any flashcards yet.</p>
+        <p className="text-gray-600 mb-6">This deck doesn&apos;t have any flashcards yet.</p>
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded space-y-1" role="alert">
+            {Array.isArray(error) ? (
+              <ul className="list-disc list-inside text-sm">
+                {error.map((errMsg, idx) => (
+                  <li key={idx}>{errMsg}</li>
+                ))}
+              </ul>
+            ) : (
+              <span className="block sm:inline">{error}</span>
+            )}
+          </div>
+        )}
         <div className="flex gap-4">
           <Button asChild>
             <Link href={`/user/flashcard-library/${deck._id}/edit`}>
@@ -760,7 +933,7 @@ useEffect(() => {
             <DialogTitle>Time for a Break!</DialogTitle>
           </DialogHeader>
           <div className="text-center py-4">
-            <p className="mb-4">You've been studying for {Math.floor(studyTime / 60)} minutes.</p>
+            <p className="mb-4">You&apos;ve been studying for {Math.floor(studyTime / 60)} minutes.</p>
             <p>Taking short breaks improves retention and prevents fatigue.</p>
           </div>
           <div className="flex justify-center gap-4 mt-4">
@@ -806,23 +979,7 @@ useEffect(() => {
               </div>
             </div>
             
-            <div className="flex items-center justify-between">
-              <Label htmlFor="spaced-repetition">Spaced Repetition</Label>
-              <div 
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  spacedRepetition ? 'bg-primary' : 'bg-gray-200'
-                }`}
-                onClick={() => setSpacedRepetition(!spacedRepetition)}
-              >
-                <span 
-                  className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
-                    spacedRepetition ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                >
-                  {spacedRepetition && <Check className="h-3 w-3 text-primary" />}
-                </span>
-              </div>
-            </div>
+            {/* Removed spaced repetition toggle since it's always enabled now */}
             
             <Separator />
             
@@ -949,13 +1106,31 @@ useEffect(() => {
         <div className="flex flex-col flex-1">
           {!studyComplete ? (
             <>
+              {/* spaced repetition stats */}
+              <div className="flex justify-between items-center mb-4 bg-gray-50 p-3 rounded-lg shadow-sm">
+                <h3 className="text-sm font-medium">Spaced Repetition Progress</h3>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center">
+                    <span className="w-3 h-3 bg-green-500 rounded-full mr-1"></span>
+                    <span className="text-xs">Mastered: {masteryStats.mastered}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="w-3 h-3 bg-yellow-500 rounded-full mr-1"></span>
+                    <span className="text-xs">Learning: {masteryStats.learning}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="w-3 h-3 bg-gray-300 rounded-full mr-1"></span>
+                    <span className="text-xs">Not Learned: {masteryStats.notLearned}</span>
+                  </div>
+                </div>
+              </div>
+              
               {/* study info */}
               <div className="flex justify-between mb-6">
                 <div>
                   <span className="text-sm text-gray-500">
                     {showDefinitionFirst ? 'Showing definitions first' : 'Showing terms first'} 
                     {shuffled ? ' • Shuffled' : ''}
-                    {spacedRepetition ? ' • Spaced repetition on' : ''}
                   </span>
                 </div>
                 
@@ -1004,12 +1179,45 @@ useEffect(() => {
                           />
                         </Button>
                       </div>
+                      
+                      {/* Show mastery status on the card */}
+                      {cards.length > 0 && currentCardIndex < cards.length && (
+                        <div className="absolute bottom-4 left-4 flex items-center">
+                          {(() => {
+                            const card = cards[currentCardIndex];
+                            const status = cardMasteryData[card._id]?.status || 'not-learned';
+                            let color, text;
+                            
+                            switch(status) {
+                              case 'mastered':
+                                color = 'bg-green-500';
+                                text = 'Mastered';
+                                break;
+                              case 'learning':
+                                color = 'bg-yellow-500';
+                                text = 'Learning';
+                                break;
+                              default:
+                                color = 'bg-gray-300';
+                                text = 'Not Learned';
+                            }
+                            
+                            return (
+                              <>
+                                <span className={`w-2 h-2 ${color} rounded-full mr-1`}></span>
+                                <span className="text-xs text-gray-400">{text}</span>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      )}
+                      
                       {showDefinitionFirst ? (
-                        <div className="absolute bottom-4 left-4 text-xs text-gray-400">
+                        <div className="absolute bottom-4 right-4 text-xs text-gray-400">
                           Definition
                         </div>
                       ) : (
-                        <div className="absolute bottom-4 left-4 text-xs text-gray-400">
+                        <div className="absolute bottom-4 right-4 text-xs text-gray-400">
                           Term
                         </div>
                       )}
@@ -1038,12 +1246,45 @@ useEffect(() => {
                           />
                         </Button>
                       </div>
+                      
+                      {/* show mastery status on the card back too */}
+                      {cards.length > 0 && currentCardIndex < cards.length && (
+                        <div className="absolute bottom-4 left-4 flex items-center">
+                          {(() => {
+                            const card = cards[currentCardIndex];
+                            const status = cardMasteryData[card._id]?.status || 'not-learned';
+                            let color, text;
+                            
+                            switch(status) {
+                              case 'mastered':
+                                color = 'bg-green-500';
+                                text = 'Mastered';
+                                break;
+                              case 'learning':
+                                color = 'bg-yellow-500';
+                                text = 'Learning';
+                                break;
+                              default:
+                                color = 'bg-gray-300';
+                                text = 'Not Learned';
+                            }
+                            
+                            return (
+                              <>
+                                <span className={`w-2 h-2 ${color} rounded-full mr-1`}></span>
+                                <span className="text-xs text-gray-400">{text}</span>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      )}
+                      
                       {showDefinitionFirst ? (
-                        <div className="absolute bottom-4 left-4 text-xs text-gray-400">
+                        <div className="absolute bottom-4 right-4 text-xs text-gray-400">
                           Term
                         </div>
                       ) : (
-                        <div className="absolute bottom-4 left-4 text-xs text-gray-400">
+                        <div className="absolute bottom-4 right-4 text-xs text-gray-400">
                           Definition
                         </div>
                       )}
@@ -1059,7 +1300,7 @@ useEffect(() => {
                   disabled={isAnimating}
                 >
                   <ChevronLeft className="mr-2" />
-                  Don't Know
+                  Don&apos;t Know
                 </Button>
                 
                 <div className="flex gap-2">
@@ -1093,7 +1334,7 @@ useEffect(() => {
                 
                 {/* keyboard shortcut */}
                 <div className="mt-4 text-sm text-gray-500">
-                  Keyboard shortcuts: ← Don't Know • → Know • Space to flip • Ctrl+Z to undo
+                  Keyboard shortcuts: ← Don&apos;t Know • → Know • Space to flip • Ctrl+Z to undo
                 </div>
               </div>
             </>
@@ -1115,6 +1356,34 @@ useEffect(() => {
                   <div>
                     <div className="text-3xl font-bold text-red-500">{unknownCards.length}</div>
                     <div className="text-sm text-gray-500">To Review</div>
+                  </div>
+                </div>
+                
+                {/* Spaced repetition stats */}
+                <div className="mt-6 pt-6 border-t">
+                  <h3 className="text-lg font-medium mb-2">Spaced Repetition Progress</h3>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="p-2 bg-green-50 rounded">
+                      <div className="flex items-center justify-center mb-1">
+                        <span className="w-3 h-3 bg-green-500 rounded-full mr-1"></span>
+                      </div>
+                      <div className="text-2xl font-bold text-green-600">{masteryStats.mastered}</div>
+                      <div className="text-xs text-gray-500">Mastered</div>
+                    </div>
+                    <div className="p-2 bg-yellow-50 rounded">
+                      <div className="flex items-center justify-center mb-1">
+                        <span className="w-3 h-3 bg-yellow-500 rounded-full mr-1"></span>
+                      </div>
+                      <div className="text-2xl font-bold text-yellow-600">{masteryStats.learning}</div>
+                      <div className="text-xs text-gray-500">Learning</div>
+                    </div>
+                    <div className="p-2 bg-gray-50 rounded">
+                      <div className="flex items-center justify-center mb-1">
+                        <span className="w-3 h-3 bg-gray-300 rounded-full mr-1"></span>
+                      </div>
+                      <div className="text-2xl font-bold text-gray-600">{masteryStats.notLearned}</div>
+                      <div className="text-xs text-gray-500">Not Learned</div>
+                    </div>
                   </div>
                 </div>
               </div>

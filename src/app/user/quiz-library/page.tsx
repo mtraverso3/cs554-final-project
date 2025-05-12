@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowUpDown, FilterIcon, PlusIcon, SearchIcon } from "lucide-react";
+import { ArrowUpDown, PlusIcon, SearchIcon, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,103 +13,37 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { getQuizzes } from "@/lib/quizForms";
+import { getQuizzes, deleteQuiz } from "@/lib/quizForms";
 import { Quiz } from "@/lib/db/data/schema";
-
-
-// export type Quiz = {
-//   id: string;
-//   name: string;
-//   description: string;
-//   questionsList: Object[];
-//   createdAt: Date;
-// };
-
-// export type Deck = {
-//   id: string;
-//   name: string;
-//   description: string;
-//   flashcardCount: number;
-//   createdAt: Date;
-// };
-//
-// const generateDummyDecks = (): Deck[] => [
-//   {
-//     id: "hyrule-101",
-//     name: "Hyrule 101",
-//     description: "Basic knowledge about the land of Hyrule",
-//     flashcardCount: 5,
-//     createdAt: new Date("2025-03-10"),
-//   },
-//   {
-//     id: "zelda-characters",
-//     name: "Characters of Zelda",
-//     description: "Important characters in the Legend of Zelda universe",
-//     flashcardCount: 8,
-//     createdAt: new Date("2025-03-15"),
-//   },
-//   {
-//     id: "botw-specifics",
-//     name: "Breath of the Wild",
-//     description: "Specific content from Breath of the Wild",
-//     flashcardCount: 6,
-//     createdAt: new Date("2025-03-20"),
-//   },
-// ];
-
-// const generateDummyQuizzes = (): Quiz[] => [
-//   {
-//     _id: "1",
-//     name: "Hero's Journey 101",
-//     description: "Test your knowledge of Hyrule, Link, and the legendary lore.",
-//     questionsList: [{question: "test question" ,answers: [{answer: "what up", isCorrect: true}]}],
-//     createdAt: new Date("2025-03-15"),
-//   },
-//   {
-//     id: "2",
-//     name: "Breath of the Wild Brain Teasers",
-//     description: "A quiz dedicated to the wildest adventures of Link in BOTW.",
-//     questionsList: [{answer: "what up", correct: true}],
-//     createdAt: new Date("2025-03-23"),
-//   },
-//   {
-//     id: "3",
-//     name: "Divine Beasts & Ancient Tech",
-//     description:
-//       "Do you know your way around the Sheikah inventions and beasts?",
-//     questionsList: [{answer: "what up", correct: true}],
-//     createdAt: new Date("2025-04-02"),
-//   },
-//   {
-//     id: "4",
-//     name: "Zelda Characters Quiz",
-//     description:
-//       "Test your knowledge about the most important characters in Hyrule.",
-//     questionsList: [{answer: "what up", correct: true}],
-//     createdAt: new Date("2025-04-05"),
-//   },
-// ];
 
 export default function QuizLibrary() {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [filteredQuizzes, setFilteredQuizzes] = useState<Quiz[]>([]);
-  //const [decks, setDecks] = useState<Deck[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  //const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [quizToDelete, setQuizToDelete] = useState<Quiz | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getQuizzes().then(
-        (quiz) => {
-          const parsedData = JSON.parse(quiz);
-          parsedData.forEach((quiz: Quiz) => {
-            quiz.createdAt = new Date(quiz.createdAt);
-          });
-          setQuizzes(parsedData);
-          setFilteredQuizzes(parsedData);
-        }
-    );
+    fetchQuizzes();
   }, []);
+
+  const fetchQuizzes = async () => {
+    try {
+      const data = await getQuizzes();
+      const parsedData = JSON.parse(data);
+      parsedData.forEach((quiz: Quiz) => {
+        quiz.createdAt = new Date(quiz.createdAt);
+      });
+      setQuizzes(parsedData);
+      setFilteredQuizzes(parsedData);
+    } catch (error) {
+      console.error("Error fetching quizzes:", error);
+      setError("Failed to load quizzes");
+    }
+  };
 
   useEffect(() => {
     let filtered = [...quizzes];
@@ -119,18 +53,14 @@ export default function QuizLibrary() {
       filtered = filtered.filter(
         (quiz) =>
           quiz.name.toLowerCase().includes(query) ||
-          quiz.description.toLowerCase().includes(query),
+          quiz.description.toLowerCase().includes(query)
       );
     }
-
-    // if (selectedDeck) {
-    //   filtered = filtered.filter((quiz) => quiz.deckId === selectedDeck);
-    // }
 
     filtered.sort((a, b) =>
       sortOrder === "asc"
         ? a.createdAt.getTime() - b.createdAt.getTime()
-        : b.createdAt.getTime() - a.createdAt.getTime(),
+        : b.createdAt.getTime() - a.createdAt.getTime()
     );
 
     setFilteredQuizzes(filtered);
@@ -140,13 +70,49 @@ export default function QuizLibrary() {
     setSortOrder(sortOrder === "asc" ? "desc" : "asc");
   };
 
-  // const getDeckName = (deckId: string) => {
-  //   const deck = decks.find((d) => d.id === deckId);
-  //   return deck ? deck.name : "Unknown Deck";
-  // };
+  const openDeleteConfirmation = (quiz: Quiz) => {
+    setQuizToDelete(quiz);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteQuiz = async () => {
+    if (!quizToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      const result = await deleteQuiz(quizToDelete._id.toString());
+      const parsedResult = JSON.parse(result);
+      
+      if (parsedResult.success) {
+        setQuizzes(prevQuizzes => prevQuizzes.filter(quiz => quiz._id.toString() !== quizToDelete._id.toString()));
+        setShowDeleteModal(false);
+      } else {
+        setError(parsedResult.error || "Failed to delete quiz");
+      }
+    } catch (error) {
+      console.error("Error deleting quiz:", error);
+      setError("An unexpected error occurred");
+    } finally {
+      setIsDeleting(false);
+      setQuizToDelete(null);
+    }
+  };
 
   return (
     <div className="container mx-auto py-8 px-6">
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6" role="alert">
+          <span className="block sm:inline">{error}</span>
+          <button 
+            className="absolute top-0 bottom-0 right-0 px-4 py-3"
+            onClick={() => setError(null)}
+          >
+            <span className="sr-only">Close</span>
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Quiz Library</h1>
         <Button asChild>
@@ -157,7 +123,6 @@ export default function QuizLibrary() {
         </Button>
       </div>
 
-      {/* search + filter */}
       <div className="flex flex-col md:flex-row gap-4 mb-8">
         <div className="relative flex-1">
           <SearchIcon
@@ -172,37 +137,44 @@ export default function QuizLibrary() {
           />
         </div>
 
-        <div className="flex gap-2">
-          <div className="relative">
-            {/*<select*/}
-            {/*  className="h-9 rounded-md border bg-background px-3 py-1 text-sm appearance-none pr-8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"*/}
-            {/*  value={selectedDeck || ""}*/}
-            {/*  onChange={(e) => setSelectedDeck(e.target.value || null)}*/}
-            {/*>*/}
-            {/*  <option value="">All Decks</option>*/}
-            {/*  {decks.map((deck) => (*/}
-            {/*    <option key={deck.id} value={deck.id}>*/}
-            {/*      {deck.name}*/}
-            {/*    </option>*/}
-            {/*  ))}*/}
-            {/*</select>*/}
-            <FilterIcon
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-              size={14}
-            />
-          </div>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={toggleSortOrder}
-            className="flex items-center gap-1"
-          >
-            <ArrowUpDown size={16} />
-            {sortOrder === "desc" ? "Newest First" : "Oldest First"}
-          </Button>
-        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={toggleSortOrder}
+          className="flex items-center gap-1"
+        >
+          <ArrowUpDown size={16} />
+          {sortOrder === "desc" ? "Newest First" : "Oldest First"}
+        </Button>
       </div>
+
+      {showDeleteModal && quizToDelete && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-lg font-medium mb-2">Delete Quiz</h3>
+            <p className="text-gray-600 mb-4">
+              Are you sure you want to delete the quiz &quot;{quizToDelete.name}&quot;? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={isDeleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="bg-red-500 hover:bg-red-600 text-white"
+                onClick={handleDeleteQuiz}
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Deleting..." : "Delete"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {filteredQuizzes.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredQuizzes.map((quiz) => (
@@ -210,7 +182,7 @@ export default function QuizLibrary() {
               <CardHeader className="pb-2">
                 <CardTitle className="line-clamp-1">{quiz.name}</CardTitle>
                 <CardDescription>
-                  {quiz.questionsList.length} question(s)
+                  {quiz.questionsList.length} question(s) • Category: {quiz.category}
                 </CardDescription>
               </CardHeader>
 
@@ -219,23 +191,34 @@ export default function QuizLibrary() {
                   {quiz.description}
                 </p>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Created on {quiz.createdAt.toLocaleDateString()}
+                  Created on {new Date(quiz.createdAt).toLocaleDateString()}
                 </p>
               </CardContent>
 
               <CardFooter className="flex justify-between pt-2">
                 <Button variant="default" size="sm" asChild>
-                  <Link href={`/user/quiz-library/${quiz._id}/study`}>
-                    Study
+                  <Link href={`/user/quiz-library/${quiz._id.toString()}/study`}>
+                    Take Quiz
                   </Link>
                 </Button>
                 <div className="space-x-2">
                   <Button variant="ghost" size="sm" asChild>
-                    <Link href={`/user/quiz-library/${quiz._id}/edit`}>
+                    <Link href={`/user/quiz-library/${quiz._id.toString()}`}>
+                      View
+                    </Link>
+                  </Button>
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link href={`/user/quiz-library/${quiz._id.toString()}/edit`}>
                       Edit
                     </Link>
                   </Button>
-                  <Button variant="ghost" size="sm">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                    onClick={() => openDeleteConfirmation(quiz)}
+                  >
+                    <Trash2 size={16} className="mr-1" />
                     Delete
                   </Button>
                 </div>
@@ -262,21 +245,18 @@ export default function QuizLibrary() {
             <h3 className="text-lg font-medium mb-2">No quizzes found</h3>
             <p className="text-muted-foreground mb-6">
               {searchQuery
-                ? "Try adjusting your search or filters"
+                ? "Try adjusting your search"
                 : "Create your first quiz to get started"}
             </p>
             <div className="flex gap-4 justify-center">
-              {/*{(searchQuery || selectedDeck) && (*/}
-              {/*  <Button*/}
-              {/*    variant="outline"*/}
-              {/*    onClick={() => {*/}
-              {/*      setSearchQuery("");*/}
-              {/*      setSelectedDeck(null);*/}
-              {/*    }}*/}
-              {/*  >*/}
-              {/*    Clear Filters*/}
-              {/*  </Button>*/}
-              {/*)}*/}
+              {searchQuery && (
+                <Button
+                  variant="outline"
+                  onClick={() => setSearchQuery("")}
+                >
+                  Clear Search
+                </Button>
+              )}
               <Button asChild>
                 <Link href="/user/quiz-library/create">
                   <PlusIcon className="mr-2" />

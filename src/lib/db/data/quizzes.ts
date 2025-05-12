@@ -9,6 +9,9 @@ import {
 import { ObjectId } from "mongodb";
 import {quizzes} from "@/lib/db/config/mongoCollections";
 import { getUserById } from "@/lib/db/data/users";
+import { redisClient } from "@/lib/db/config/redisConnection";
+import { deserializeQuiz, serializeQuiz } from "@/lib/db/data/serialize";
+
 
 export async function createQuiz(
   name: string,
@@ -18,39 +21,57 @@ export async function createQuiz(
   questionsList: QuizEntry[] = [],
 ): Promise<Quiz> {
   // Check if the owner exists
-  await getUserById(ownerId);
+  const quizId = new ObjectId();
+  try {
+    await getUserById(ownerId);
 
-  // Validate questionsList
-  const validatedQuestions = await Promise.all(
-    questionsList.map((q) => QuizEntrySchema.validate(q))
-  );
+    // Validate questionsList
+    const validatedQuestions = await Promise.all(
+      questionsList.map((q) => QuizEntrySchema.validateSync(q))
+    );
+    let newQuiz: Quiz = {
+      _id: quizId,
+      name: name,
+      description: description,
+      ownerId: new ObjectId(ownerId),
+      createdAt: new Date(),
+      lastStudied: new Date(),
+      attempts: [],
+      category: category,
+      questionsList: validatedQuestions
+    };
 
-  let newQuiz: Quiz = {
-    _id: new ObjectId(),
-    name: name,
-    description: description,
-    ownerId: new ObjectId(ownerId),
-    createdAt: new Date(),
-    lastStudied: new Date(),
-    attempts: [],
-    category: category,
-    questionsList: validatedQuestions,
-  };
+    newQuiz = await QuizSchema.validate(newQuiz);
 
-  newQuiz = await QuizSchema.validate(newQuiz);
+    const quizCollection = await quizzes();
+    const insertInfo = await quizCollection.insertOne(newQuiz);
+    if (!insertInfo.acknowledged || !insertInfo.insertedId) {
+      throw new Error("Error inserting new quiz");
+    }
 
-  const quizCollection = await quizzes();
-  const insertInfo = await quizCollection.insertOne(newQuiz);
-  if (!insertInfo.acknowledged || !insertInfo.insertedId) {
-    throw new Error("Error inserting new quiz");
+    return newQuiz;
   }
+  finally{
+    const client = await redisClient();
+    const cacheKey = `quiz:${quizId}`;
+    const userCacheKey = `quizzes:user:${ownerId}`;
+    await client.del(cacheKey);
+    await client.del(userCacheKey);
 
-  return newQuiz;
+  }
 }
 
 export async function getQuizById(id: string): Promise<Quiz> {
   if (!ObjectId.isValid(id)) {
     throw new Error("Invalid ObjectId");
+  }
+
+  const client = await redisClient();
+
+  const cacheKey = `quiz:${id}`;
+  const cachedQuiz = await client.get(cacheKey);
+  if (cachedQuiz) {
+    return deserializeQuiz(cachedQuiz);
   }
 
   const quizCollection = await quizzes();
@@ -65,6 +86,8 @@ export async function getQuizById(id: string): Promise<Quiz> {
   if (!quiz) {
     throw new Error("Quiz not found");
   }
+  await client.set(cacheKey, serializeQuiz(quiz), { EX: 3600 });
+
   return quiz;
 }
 
@@ -99,6 +122,15 @@ export async function getQuizzesByUserId(
     throw new Error("Invalid ObjectId");
   }
 
+  const client = await redisClient();
+  const cacheKey = `quizzes:user:${userId}`;
+  const cached = await client.get(cacheKey);
+  if (cached) {
+    const serializedArray: string[] = JSON.parse(cached);
+    return serializedArray.map(s => deserializeQuiz(s));
+  }
+
+
   const quizCollection = await quizzes();
   let quizList;
   try {
@@ -111,7 +143,89 @@ export async function getQuizzesByUserId(
   if (!quizList) {
     throw new Error("Decks not found");
   }
+  const serializedList = quizList.map(serializeQuiz);
+  await client.set(cacheKey, JSON.stringify(serializedList), { EX: 3600 });
   return quizList;
+}
+export async function updateQuiz(
+    quizId: string,
+    userId: string,
+    name: string,
+    description: string,
+    questions: QuizEntry[]
+): Promise<string> {
+  try {
+    const quiz: Quiz = await getQuizById(quizId);
+    if (!quiz.ownerId.equals(new ObjectId(userId))) {
+      throw new Error("Not authorized to update this quiz");
+    }
+
+    const questionsList: QuizEntry[] = questions.map(question => ({
+      question: question.question,
+      answers: question.answers.map(answer => ({
+        answer: answer.answer,
+        isCorrect: answer.isCorrect,
+      }))
+    }));
+
+    const quizzesCollection = await quizzes();
+    await quizzesCollection.updateOne(
+        { _id: new ObjectId(quizId) },
+        {
+          $set: {
+            name,
+            description,
+            questionsList
+          }
+        }
+    );
+
+    return JSON.stringify({ success: true });
+  } catch (error) {
+    console.error("Error updating deck:", error);
+    return JSON.stringify({
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
+  finally {
+    const client = await redisClient();
+    const cacheKey = `quiz:${quizId}`;
+    const userCacheKey = `quizzes:user:${userId}`;
+    await client.del(cacheKey);
+    await client.del(userCacheKey);
+  }
+}
+
+export async function deleteQuiz(quizId: string, userId: string): Promise<string> {
+  try {
+    const quiz: Quiz = await getQuizById(quizId);
+    if (!quiz.ownerId.equals(new ObjectId(userId))) {
+      throw new Error("Not authorized to delete this quiz");
+    }
+
+    const quizzesCollection = await quizzes();
+    const deleteResult = await quizzesCollection.deleteOne({ _id: new ObjectId(quizId) });
+
+    if (deleteResult.deletedCount === 0) {
+      throw new Error("Quiz could not be deleted");
+    }
+
+    return JSON.stringify({ success: true });
+  } catch (error) {
+    console.error("Error deleting quiz:", error);
+    return JSON.stringify({
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
+  finally {
+    const client = await redisClient();
+    const cacheKey = `quiz:${quizId}`;
+    const userCacheKey = `quizzes:user:${userId}`;
+    await client.del(cacheKey);
+    await client.del(userCacheKey);
+  }
 }
 
 export async function addQuizAttempt(quizId: string, userId: string, score: number): Promise<QuizAttempt> {
