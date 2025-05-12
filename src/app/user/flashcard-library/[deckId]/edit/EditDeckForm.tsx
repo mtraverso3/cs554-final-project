@@ -8,12 +8,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Plus, Trash2 } from "lucide-react";
 import { updateDeck } from "@/lib/deckForms";
 import { useRouter } from "next/navigation";
-import { DeckInputSchema, FlashcardInput, FlashcardInputSchema } from "@/lib/db/data/safeSchema"; // safe for front end
+import { DeckInputSchema, FlashcardInput } from "@/lib/db/data/safeSchema"; // safe for front end
 import * as Yup from "yup";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-
-type Flashcard = { front: string; back: string };
 
 
 

@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2, X, Check, ArrowLeft, AlertCircle, HelpCircle } from "lucide-react";
+import { Plus, Trash2, X, Check, ArrowLeft, HelpCircle } from "lucide-react";
 import { updateQuiz } from "@/lib/quizForms";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
