@@ -1,7 +1,5 @@
-import { Deck, User, Quiz } from "@/lib/db/data/schema";
+import { Deck, Quiz, User } from "@/lib/db/data/schema";
 import { ObjectId } from "mongodb";
-
-
 
 export function serializeDeck(deck: Deck): string {
   return JSON.stringify({
@@ -37,19 +35,51 @@ export function serializeDeck(deck: Deck): string {
   });
 }
 
+type SerializedDeck = {
+  _id: string;
+  category: string;
+  comments: Array<{
+    createdAt: string;
+    ownerId: string;
+    text: string;
+  }>;
+  createdAt: string;
+  description: string;
+  flashcardList: Array<{
+    _id: string;
+    deckId: string;
+    front: string;
+    back: string;
+  }>;
+  lastStudied: string;
+  likes: string[];
+  name: string;
+  ownerId: string;
+  studyProgress: {
+    currentCardIndex: number;
+    isCompleted: boolean;
+    isReviewMode: boolean;
+    knownCardIds: string[];
+    lastPosition: number;
+    reviewingCardIds: string[];
+    studyTime: number;
+    unknownCardIds: string[];
+  };
+};
+
 export function deserializeDeck(serialized: string): Deck {
-  const data = JSON.parse(serialized);
+  const data = JSON.parse(serialized) as SerializedDeck;
   return {
     _id: new ObjectId(data._id),
     category: data.category,
-    comments: data.comments.map((c: any) => ({
+    comments: data.comments.map((c) => ({
       createdAt: new Date(c.createdAt),
       ownerId: new ObjectId(c.ownerId),
       text: c.text,
     })),
     createdAt: new Date(data.createdAt),
     description: data.description,
-    flashcardList: data.flashcardList.map((f: any) => ({
+    flashcardList: data.flashcardList.map((f) => ({
       _id: new ObjectId(f._id),
       deckId: new ObjectId(f.deckId),
       front: f.front,
@@ -79,14 +109,14 @@ export function serializeQuiz(quiz: Quiz): string {
     ownerId: quiz.ownerId.toString(),
     createdAt: quiz.createdAt.toISOString(),
     lastStudied: quiz.lastStudied.toISOString(),
-    attempts: quiz.attempts.map(a => ({
+    attempts: quiz.attempts.map((a) => ({
       userId: a.userId.toString(),
       score: a.score,
       date: a.date.toISOString(),
     })),
-    questionsList: quiz.questionsList.map(q => ({
+    questionsList: quiz.questionsList.map((q) => ({
       question: q.question,
-      answers: q.answers.map(a => ({
+      answers: q.answers.map((a) => ({
         answer: a.answer,
         isCorrect: a.isCorrect,
       })),
@@ -117,29 +147,26 @@ export function deserializeQuiz(cached: string): Quiz {
     }[];
   };
 
-  const parsed: Quiz = {
+  return {
     ...raw,
     _id: new ObjectId(raw._id),
     ownerId: new ObjectId(raw.ownerId),
     createdAt: new Date(raw.createdAt),
     lastStudied: new Date(raw.lastStudied),
-    attempts: raw.attempts.map(a => ({
+    attempts: raw.attempts.map((a) => ({
       userId: new ObjectId(a.userId),
       score: a.score,
       date: new Date(a.date),
     })),
-    questionsList: raw.questionsList.map(q => ({
+    questionsList: raw.questionsList.map((q) => ({
       question: q.question,
-      answers: q.answers.map(a => ({
+      answers: q.answers.map((a) => ({
         answer: a.answer,
         isCorrect: a.isCorrect,
       })),
     })),
   };
-
-  return parsed;
 }
-
 
 export function serializeUser(user: User): string {
   return JSON.stringify({
@@ -150,7 +177,6 @@ export function serializeUser(user: User): string {
     lastName: user.lastName,
   });
 }
-
 
 export function deserializeUser(serialized: string): User {
   const data = JSON.parse(serialized);

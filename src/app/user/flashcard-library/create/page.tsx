@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { DeckCreateSchema } from "@/lib/db/data/safeSchema";
+import * as Yup from "yup";
 
 interface DeckForm {
   name: string;
@@ -20,7 +22,7 @@ export default function CreateDeck() {
     category: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string[] | null>(null);
 
   const handleInputChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -31,20 +33,14 @@ export default function CreateDeck() {
 
   const finishDeck = async () => {
     setError(null);
-    
-    if (!deckInfo.name.trim()) {
-      setError("Deck name is required");
-      return;
-    }
-    
-    if (!deckInfo.description.trim()) {
-      setError("Description is required");
-      return;
-    }
-    
-    if (!deckInfo.category.trim()) {
-      setError("Category is required");
-      return;
+
+    try {
+      await DeckCreateSchema.validate(deckInfo, { abortEarly: false });
+    } catch (validationError) {
+      if (validationError instanceof Yup.ValidationError) {
+        setError(validationError.errors); // Or join all errors
+        return;
+      }
     }
     
     setIsSubmitting(true);
@@ -54,7 +50,7 @@ export default function CreateDeck() {
       router.push("/user/flashcard-library");
     } catch (error) {
       console.error(error);
-      setError(error instanceof Error ? error.message : "Error creating deck");
+      setError([error instanceof Error ? error.message : "Error creating deck"]);
     } finally {
       setIsSubmitting(false);
     }
@@ -63,10 +59,18 @@ export default function CreateDeck() {
   return (
     <div className="container mx-auto py-8 px-6 max-w-lg">
       <h1 className="text-3xl font-bold mb-6">Create New Deck</h1>
-      
+
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4" role="alert">
-          <span className="block sm:inline">{error}</span>
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded space-y-1" role="alert">
+          {Array.isArray(error) ? (
+            <ul className="list-disc list-inside text-sm">
+              {error.map((errMsg, idx) => (
+                <li key={idx}>{errMsg}</li>
+              ))}
+            </ul>
+          ) : (
+            <span className="block sm:inline">{error}</span>
+          )}
         </div>
       )}
       

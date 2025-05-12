@@ -9,8 +9,17 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { BookOpenIcon, HomeIcon, LayersIcon, UserIcon } from "lucide-react";
+import {
+  BookOpenIcon,
+  HomeIcon,
+  LayersIcon,
+  LogOut,
+  SettingsIcon,
+  User,
+  UserIcon,
+} from "lucide-react";
 import Link from "next/link";
+import React from "react";
 
 const appLinks = [
   {
@@ -69,6 +78,35 @@ export function UserSidebar({ user }: { user: { name: string } }) {
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
+          </SidebarMenu>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel>Account</SidebarGroupLabel>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/user/profile">
+                  <User />
+                  <span>Profile</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/user/settings">
+                  <SettingsIcon />
+                  <span>Settings</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <a href="/auth/logout">
+                  <LogOut />
+                  <span>Logout</span>
+                </a>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>

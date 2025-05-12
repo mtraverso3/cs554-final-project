@@ -1,7 +1,7 @@
 import { decks } from "../config/mongoCollections";
 import { Collection, ObjectId } from "mongodb";
 import { getUserById } from "./users";
-import {CommentSchema, Comment, Deck, DeckSchema, StudyProgress, Flashcard} from "./schema";
+import { CommentSchema, Comment, Deck, DeckSchema, StudyProgress, Flashcard, StudyProgressSchema } from "./schema";
 import {StudyProgressData} from "@/lib/deckForms";
 import { redisClient } from "@/lib/db/config/redisConnection";
 import { serializeDeck, deserializeDeck } from "@/lib/db/data/serialize";
@@ -132,6 +132,8 @@ export async function saveStudyProgress(
     if (!deck.ownerId.equals(new ObjectId(userId))) {
       throw new Error("Not authorized to update this deck");
     }
+
+    await StudyProgressSchema.validate(progress);
 
     const deckCollection = await decks();
 

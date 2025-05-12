@@ -7,39 +7,25 @@ import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { updateDeck } from "@/lib/deckForms";
 import { useRouter } from "next/navigation";
-
-type FlashcardDTO = {
-  _id: string;
-  deckId: string;
-  front: string;
-  back: string;
-};
-
-type DeckDTO = {
-  _id: string;
-  ownerId: string;
-  name: string;
-  description: string;
-  category: string;
-  createdAt: string;
-  lastStudied: string;
-  flashcardList: FlashcardDTO[];
-};
+import { FlashcardInput, DeckInput, FlashcardInputSchema } from "@/lib/db/data/safeSchema";
+import * as Yup from "yup";
 
 type CardMasteryStatus = "mastered" | "learning" | "not-learned";
-type CardWithMastery = FlashcardDTO & {
+type CardWithMastery = FlashcardInput & {
   masteryStatus: CardMasteryStatus;
   reviewCount: number;
 };
 
-export default function FlashcardView({ deck }: { deck: DeckDTO }) {
+export default function FlashcardView({ deck }: { deck: DeckInput }) {
   const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [editing, setEditing] = useState<null | number>(null);
   const [editValues, setEditValues] = useState({ front: "", back: "" });
   const [isSaving, setIsSaving] = useState(false);
-  const [cards, setCards] = useState<FlashcardDTO[]>(deck.flashcardList);
+  const [error, setError] = useState<string[] | null>(null);
+
+  const [cards, setCards] = useState<FlashcardInput[]>(deck.flashcardList);
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
   const [listViewMode, setListViewMode] = useState<'original' | 'spaced'>('original');
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -86,7 +72,7 @@ export default function FlashcardView({ deck }: { deck: DeckDTO }) {
       const masteryData: Record<string, { status: CardMasteryStatus, count: number }> = {};
       
       cardsWithMastery.forEach(card => {
-        masteryData[card._id] = {
+        masteryData[card._id!] = {
           status: card.masteryStatus,
           count: card.reviewCount
         };
@@ -97,46 +83,46 @@ export default function FlashcardView({ deck }: { deck: DeckDTO }) {
   }, [cardsWithMastery, deck._id]);
 
   // lil funny need to check later
-  const updateCardMasteryStatus = (cardId: string, isCorrect: boolean) => {
-    setCardsWithMastery(prevCards => 
-      prevCards.map(card => {
-        if (card._id === cardId) {
-          const newCount = card.reviewCount + 1;
-          let newStatus: CardMasteryStatus = card.masteryStatus;
-          
-          // to explain how works (for me)
-          // if correct: 
-          // - not-learned = learning (after 1 correct review)
-          // - learning = mastered (after 3 correct review)
-
-          // if incorrect:
-          // - mastered = learning
-          // - learning = not-learned (after 2 incorrect reviews)
-          
-          if (isCorrect) {
-            if (card.masteryStatus === 'not-learned' && newCount >= 1) {
-              newStatus = 'learning';
-            } else if (card.masteryStatus === 'learning' && newCount >= 3) {
-              newStatus = 'mastered';
-            }
-          } else {
-            if (card.masteryStatus === 'mastered') {
-              newStatus = 'learning';
-            } else if (card.masteryStatus === 'learning' && newCount >= 2) {
-              newStatus = 'not-learned';
-            }
-          }
-          
-          return {
-            ...card,
-            masteryStatus: newStatus,
-            reviewCount: newCount
-          };
-        }
-        return card;
-      })
-    );
-  };
+  // const updateCardMasteryStatus = (cardId: string, isCorrect: boolean) => {
+  //   setCardsWithMastery(prevCards =>
+  //     prevCards.map(card => {
+  //       if (card._id === cardId) {
+  //         const newCount = card.reviewCount + 1;
+  //         let newStatus: CardMasteryStatus = card.masteryStatus;
+  //
+  //         // to explain how works (for me)
+  //         // if correct:
+  //         // - not-learned = learning (after 1 correct review)
+  //         // - learning = mastered (after 3 correct review)
+  //
+  //         // if incorrect:
+  //         // - mastered = learning
+  //         // - learning = not-learned (after 2 incorrect reviews)
+  //
+  //         if (isCorrect) {
+  //           if (card.masteryStatus === 'not-learned' && newCount >= 1) {
+  //             newStatus = 'learning';
+  //           } else if (card.masteryStatus === 'learning' && newCount >= 3) {
+  //             newStatus = 'mastered';
+  //           }
+  //         } else {
+  //           if (card.masteryStatus === 'mastered') {
+  //             newStatus = 'learning';
+  //           } else if (card.masteryStatus === 'learning' && newCount >= 2) {
+  //             newStatus = 'not-learned';
+  //           }
+  //         }
+  //
+  //         return {
+  //           ...card,
+  //           masteryStatus: newStatus,
+  //           reviewCount: newCount
+  //         };
+  //       }
+  //       return card;
+  //     })
+  //   );
+  // };
 
   useEffect(() => {
     return () => {
@@ -147,7 +133,7 @@ export default function FlashcardView({ deck }: { deck: DeckDTO }) {
   }, []);
 
   // txt to speech bc y not (i had time)
-  const speakCardContent = (card: FlashcardDTO, isBackSide: boolean = false, isListView: boolean = false) => {
+  const speakCardContent = (card: FlashcardInput, isBackSide: boolean = false, isListView: boolean = false) => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
 
@@ -233,6 +219,8 @@ export default function FlashcardView({ deck }: { deck: DeckDTO }) {
   };
 
   const saveEditing = async (cardIndex?: number) => {
+    setError(null);
+
     const indexToEdit = cardIndex !== undefined ? cardIndex : editing;
     
     if (indexToEdit === null || indexToEdit === undefined) return;
@@ -243,6 +231,15 @@ export default function FlashcardView({ deck }: { deck: DeckDTO }) {
       front: editValues.front,
       back: editValues.back
     };
+
+    try {
+      await FlashcardInputSchema.validate(updatedCards[indexToEdit], { abortEarly: false });
+    } catch (validationError) {
+      if (validationError instanceof Yup.ValidationError) {
+        setError(validationError.errors); // Or join all errors
+        return;
+      }
+    }
     
     setIsSaving(true);
     
@@ -251,7 +248,6 @@ export default function FlashcardView({ deck }: { deck: DeckDTO }) {
         front: card.front,
         back: card.back
       }));
-      
       const result = await updateDeck(
         deck._id,
         deck.name,
@@ -266,11 +262,12 @@ export default function FlashcardView({ deck }: { deck: DeckDTO }) {
         setEditing(null);
         router.refresh();
       } else {
-        alert("Failed to save changes: " + parsedResult.error);
+        console.error("Failed to save changes: " + parsedResult.error);
+        setError(parsedResult.error || "Failed to save changes");
       }
     } catch (error) {
       console.error("Error saving card:", error);
-      alert("An unexpected error occurred");
+      setError(["an unexpected error occurred."]);
     } finally {
       setIsSaving(false);
     }
@@ -347,6 +344,19 @@ export default function FlashcardView({ deck }: { deck: DeckDTO }) {
           </Button>
         </div>
       </div>
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded space-y-1" role="alert">
+          {Array.isArray(error) ? (
+            <ul className="list-disc list-inside text-sm">
+              {error.map((errMsg, idx) => (
+                <li key={idx}>{errMsg}</li>
+              ))}
+            </ul>
+          ) : (
+            <span className="block sm:inline">{error}</span>
+          )}
+        </div>
+      )}
       
       {hasCards ? (
         <>
@@ -660,7 +670,7 @@ export default function FlashcardView({ deck }: { deck: DeckDTO }) {
                         <div className="space-y-4">
                           {cardsWithMastery
                             .filter(card => card.masteryStatus === 'mastered')
-                            .map((card, idx) => (
+                            .map((card) => (
                               <div key={card._id} className={`border-l-4 ${getMasteryColorClass('mastered')} rounded-lg shadow overflow-hidden`}>
                                 <div className="bg-green-50 p-4 flex items-center">
                                   <div className="flex items-center">
@@ -701,7 +711,7 @@ export default function FlashcardView({ deck }: { deck: DeckDTO }) {
                         <div className="space-y-4">
                           {cardsWithMastery
                             .filter(card => card.masteryStatus === 'learning')
-                            .map((card, idx) => (
+                            .map((card) => (
                               <div key={card._id} className={`border-l-4 ${getMasteryColorClass('learning')} rounded-lg shadow overflow-hidden`}>
                                 <div className="bg-yellow-50 p-4 flex items-center">
                                   <div className="flex items-center">
@@ -743,7 +753,7 @@ export default function FlashcardView({ deck }: { deck: DeckDTO }) {
                         <div className="space-y-4">
                           {cardsWithMastery
                             .filter(card => card.masteryStatus === 'not-learned')
-                            .map((card, idx) => (
+                            .map((card) => (
                               <div key={card._id} className={`border-l-4 ${getMasteryColorClass('not-learned')} rounded-lg shadow overflow-hidden`}>
                                 <div className="bg-gray-50 p-4 flex items-center">
                                   <div className="flex items-center">
@@ -781,7 +791,7 @@ export default function FlashcardView({ deck }: { deck: DeckDTO }) {
         </>
       ) : (
         <div className="text-center py-12">
-          <p className="text-lg mb-4">This deck doesn't have any flashcards yet.</p>
+          <p className="text-lg mb-4">This deck doesn&apos;t have any flashcards yet.</p>
           <Button asChild>
             <Link href={`/user/flashcard-library/${deck._id}/edit`}>
               Add Flashcards

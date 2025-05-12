@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { addQuizAttempt } from "@/lib/quizForms";
 import {
@@ -58,7 +57,7 @@ type QuizResults = {
 };
 
 export default function QuizStudy({ quiz }: { quiz: QuizDTO }) {
-  const router = useRouter();
+
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswerIndices, setSelectedAnswerIndices] = useState<Set<number>>(new Set());
   const [isAnswerSubmitted, setIsAnswerSubmitted] = useState(false);
@@ -124,7 +123,11 @@ export default function QuizStudy({ quiz }: { quiz: QuizDTO }) {
     if (isAnswerSubmitted) return;
     if (isMultipleAnswersQuestion) {
       const copy = new Set(selectedAnswerIndices);
-      copy.has(shuffledIdx) ? copy.delete(shuffledIdx) : copy.add(shuffledIdx);
+      if (copy.has(shuffledIdx)) {
+        copy.delete(shuffledIdx);
+      } else {
+        copy.add(shuffledIdx);
+      }
       setSelectedAnswerIndices(copy);
     } else {
       setSingleSelectedAnswer(shuffledIdx);
@@ -143,11 +146,15 @@ export default function QuizStudy({ quiz }: { quiz: QuizDTO }) {
       if (isMultipleAnswersQuestion) {
         selectedAnswerIndices.forEach((sh) => {
           const orig = shuffledAnswers[currentQuestionIndex].find((m) => m.shuffled === sh)?.original;
-          orig !== undefined && originalSet.add(orig);
+          if (orig !== undefined) {
+            originalSet.add(orig);
+          }
         });
       } else {
         const orig = shuffledAnswers[currentQuestionIndex].find((m) => m.shuffled === selectedSingleAnswer!)?.original;
-        orig !== undefined && originalSet.add(orig);
+        if (orig !== undefined) {
+          originalSet.add(orig);
+        }
       }
 
       const copy = [...userAnswers];
@@ -180,14 +187,18 @@ export default function QuizStudy({ quiz }: { quiz: QuizDTO }) {
         const rev = new Set<number>();
         prev.forEach((orig) => {
           const sh = shuffledAnswers[currentQuestionIndex - 1].find((m) => m.original === orig)?.shuffled;
-          sh !== undefined && rev.add(sh);
+          if (sh !== undefined) {
+            rev.add(sh);
+          }
         });
         setSelectedAnswerIndices(rev);
         setSingleSelectedAnswer(null);
       } else {
         const orig = Array.from(prev)[0];
         const sh = shuffledAnswers[currentQuestionIndex - 1].find((m) => m.original === orig)?.shuffled;
-        sh !== undefined && setSingleSelectedAnswer(sh);
+        if (sh !== undefined) {
+          setSingleSelectedAnswer(sh);
+        }
         setSelectedAnswerIndices(new Set());
       }
       setIsAnswerSubmitted(true);
@@ -262,7 +273,7 @@ export default function QuizStudy({ quiz }: { quiz: QuizDTO }) {
     return (
       <div className="flex flex-col items-center justify-center h-[70vh] text-center">
         <h2 className="text-2xl font-bold mb-4">No Questions Available</h2>
-        <p className="text-gray-600 mb-6">This quiz doesn't have any questions yet.</p>
+        <p className="text-gray-600 mb-6">This quiz doesn&apos;t have any questions yet.</p>
         <div className="flex gap-4">
           <Button asChild>
             <Link href={`/user/quiz-library/${quiz._id}/edit`}>Add Questions</Link>

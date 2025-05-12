@@ -27,7 +27,7 @@ export async function createQuiz(
 
     // Validate questionsList
     const validatedQuestions = await Promise.all(
-      questionsList.map((q) => QuizEntrySchema.validate(q))
+      questionsList.map((q) => QuizEntrySchema.validateSync(q))
     );
     let newQuiz: Quiz = {
       _id: quizId,

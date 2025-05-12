@@ -37,14 +37,9 @@ async function getQuiz(id: string): Promise<Quiz> {
   return quiz;
 }
 
-export default async function EditPage({
-  params,
-}: {
-  params: Promise<{ quizId: string }> | { quizId: string };
-}) {
+export default async function EditPage({ params }: { params: Promise<{ quizId: string }> }) {
   try {
-    const quizId = params instanceof Promise ? (await params).quizId : params.quizId;
-    
+    const { quizId } = await params;
     const quiz: Quiz = await getQuiz(quizId);
     return <EditQuizForm quiz={serializeQuiz(quiz)} />;
   } catch (error) {

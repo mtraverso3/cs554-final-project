@@ -8,26 +8,34 @@ import FlashcardView from "./FlashcardView";
 function serializeDeck(deck: Deck) {
   return {
     _id: deck._id.toString(),
-    ownerId: deck.ownerId.toString(),
-    name: deck.name,
+      category: deck.category,
+    comments: deck.comments.map((c) => ({
+    createdAt: c.createdAt.toISOString(),
+    ownerId: c.ownerId.toString(),
+    text: c.text,
+  })),
+    createdAt: deck.createdAt.toISOString(),
     description: deck.description,
-    category: deck.category,
-    createdAt: deck.createdAt ? deck.createdAt.toISOString() : new Date().toISOString(),
-    lastStudied: deck.lastStudied ? deck.lastStudied.toISOString() : new Date().toISOString(),
-    flashcardList: deck.flashcardList.map((fc) => ({
-      _id: fc._id.toString(),
-      deckId: fc.deckId.toString(),
-      front: fc.front,
-      back: fc.back,
-    })),
-    studyProgress: deck.studyProgress,
-    likes: deck.likes.map((like) => like.toString()),
-    comments: deck.comments.map((comment) => ({
-      userId: comment.ownerId.toString(),
-      text: comment.text,
-      createdAt: comment.createdAt ? comment.createdAt.toISOString() : new Date().toISOString(),
-    })),
-
+    flashcardList: deck.flashcardList.map((f) => ({
+    _id: f._id.toString(),
+    deckId: f.deckId.toString(),
+    front: f.front,
+    back: f.back,
+  })),
+    lastStudied: deck.lastStudied.toISOString(),
+    likes: deck.likes.map((l) => l.toString()),
+    name: deck.name,
+    ownerId: deck.ownerId.toString(),
+    studyProgress: {
+    currentCardIndex: deck.studyProgress.currentCardIndex,
+      isCompleted: deck.studyProgress.isCompleted,
+      isReviewMode: deck.studyProgress.isReviewMode,
+      knownCardIds: deck.studyProgress.knownCardIds,
+      lastPosition: deck.studyProgress.lastPosition,
+      reviewingCardIds: deck.studyProgress.reviewingCardIds,
+      studyTime: deck.studyProgress.studyTime,
+      unknownCardIds: deck.studyProgress.unknownCardIds,
+  },
   };
 }
 
@@ -47,7 +55,7 @@ async function getDeck(id: string): Promise<Deck> {
 export default async function ViewDeckPage({
   params,
 }: {
-  params: { deckId: string };
+  params: Promise<{ deckId: string }>;
 }) {
   const { deckId } = await params;
   try {

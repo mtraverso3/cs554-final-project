@@ -5,22 +5,38 @@ import { Deck, User } from "@/lib/db/data/schema";
 import { unauthorized } from "next/navigation";
 import EditDeckForm from "./EditDeckForm";
 
-function serializeDeck(deck: Deck) { //ugh we can't sent complex objects to the client, so we have to serialize them
-  return {
-    _id:      deck._id.toString(),
-    ownerId:  deck.ownerId.toString(),
-    name:     deck.name,
-    description: deck.description,
+function serializeDeck(deck: Deck): string {
+  return (JSON.stringify({
+    _id: deck._id.toString(),
     category: deck.category,
-    createdAt:  deck.createdAt ? deck.createdAt.toISOString() : new Date().toISOString(), // changed this line or else error for editing deck cards
-    lastStudied: deck.lastStudied ? deck.lastStudied.toISOString() : new Date().toISOString(), // and this
-    flashcardList: deck.flashcardList.map((fc) => ({
-      _id:    fc._id.toString(),
-      deckId: fc.deckId.toString(),
-      front:  fc.front,
-      back:   fc.back,
+    comments: deck.comments.map((c) => ({
+      createdAt: c.createdAt.toISOString(),
+      ownerId: c.ownerId.toString(),
+      text: c.text,
     })),
-  };
+    createdAt: deck.createdAt.toISOString(),
+    description: deck.description,
+    flashcardList: deck.flashcardList.map((f) => ({
+      _id: f._id.toString(),
+      deckId: f.deckId.toString(),
+      front: f.front,
+      back: f.back,
+    })),
+    lastStudied: deck.lastStudied.toISOString(),
+    likes: deck.likes.map((l) => l.toString()),
+    name: deck.name,
+    ownerId: deck.ownerId.toString(),
+    studyProgress: {
+      currentCardIndex: deck.studyProgress.currentCardIndex,
+      isCompleted: deck.studyProgress.isCompleted,
+      isReviewMode: deck.studyProgress.isReviewMode,
+      knownCardIds: deck.studyProgress.knownCardIds,
+      lastPosition: deck.studyProgress.lastPosition,
+      reviewingCardIds: deck.studyProgress.reviewingCardIds,
+      studyTime: deck.studyProgress.studyTime,
+      unknownCardIds: deck.studyProgress.unknownCardIds,
+    },
+  }));
 }
 
 async function getDeck(id: string): Promise<Deck> {

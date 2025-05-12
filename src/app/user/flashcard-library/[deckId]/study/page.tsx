@@ -84,9 +84,9 @@ async function getDeck(id: string): Promise<Deck> {
 export default async function StudyPage({
   params,
 }: {
-  params: { deckId: string };
+  params: Promise<{ deckId: string }>;
 }) {
-  const { deckId } = params;
+  const { deckId } = await params;
   try {
     const deck: Deck = await getDeck(deckId);
 

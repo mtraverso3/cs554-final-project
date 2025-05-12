@@ -40,10 +40,10 @@ async function getQuiz(id: string): Promise<Quiz> {
 export default async function ViewQuizPage({
   params,
 }: {
-  params: Promise<{ quizId: string }> | { quizId: string };
+  params: Promise<{ quizId: string }>;
 }) {
   try {
-    const quizId = params instanceof Promise ? (await params).quizId : params.quizId;
+    const { quizId } = await params;
     
     const quiz: Quiz = await getQuiz(quizId);
     return <QuizView quiz={serializeQuiz(quiz)} />;

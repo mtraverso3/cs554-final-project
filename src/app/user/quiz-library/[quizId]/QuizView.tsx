@@ -184,7 +184,7 @@ export default function QuizView({ quiz }: { quiz: QuizDTO }) {
           ))
         ) : (
           <div className="text-center py-8 border rounded-lg">
-            <p className="text-gray-500 mb-4">This quiz doesn't have any questions yet.</p>
+            <p className="text-gray-500 mb-4">This quiz doesn&apos;t have any questions yet.</p>
             <Button asChild>
               <Link href={`/user/quiz-library/${quiz._id}/edit`}>
                 Add Questions
@@ -200,7 +200,7 @@ export default function QuizView({ quiz }: { quiz: QuizDTO }) {
           <div className="bg-white rounded-lg p-6 max-w-md w-full">
             <h3 className="text-lg font-medium mb-2">Delete Quiz</h3>
             <p className="text-gray-600 mb-4">
-              Are you sure you want to delete the quiz "{quiz.name}"? This action cannot be undone.
+              Are you sure you want to delete the quiz &quot;{quiz.name}&quot;? This action cannot be undone.
             </p>
             <div className="flex justify-end gap-2">
               <Button

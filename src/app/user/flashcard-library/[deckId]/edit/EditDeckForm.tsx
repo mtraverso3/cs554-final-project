@@ -8,20 +8,21 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Plus, Trash2 } from "lucide-react";
 import { updateDeck } from "@/lib/deckForms";
 import { useRouter } from "next/navigation";
-import {FlashcardInput, Deck} from "@/lib/db/data/schema";
-import { DeckInputSchema, FlashcardInputSchema } from "@/lib/db/data/safeSchema"; // safe for front end
+import { DeckInputSchema } from "@/lib/db/data/safeSchema"; // safe for front end
 import * as Yup from "yup";
 
 type Flashcard = { front: string; back: string };
 
 
 
-export default function EditDeckForm({ deck }: { deck: Deck }) {
+export default function EditDeckForm({ deck }: { deck: string }) {
+  const parsedDeck = JSON.parse(deck);
+
   const router = useRouter();
-  const [name, setName] = useState(deck.name);
-  const [description, setDescription] = useState(deck.description);
+  const [name, setName] = useState(parsedDeck.name);
+  const [description, setDescription] = useState(parsedDeck.description);
   const [cards, setCards] = useState<Flashcard[]>(
-    deck.flashcardList.map(card => ({ front: card.front, back: card.back }))
+    parsedDeck.flashcardList.map((card: {front: string, back: string }) => ({ front: card.front, back: card.back }))
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string[] | null>(null);
@@ -44,9 +45,10 @@ export default function EditDeckForm({ deck }: { deck: Deck }) {
     setError(null);
 
     const formData = {
+      _id: parsedDeck._id.toString(),
       name,
       description,
-      category: deck.category, // assuming category is not editable
+      category: parsedDeck.category, // assuming category is not editable
       flashcardList: cards,
     };
 
@@ -64,7 +66,7 @@ export default function EditDeckForm({ deck }: { deck: Deck }) {
     try {
       const validCards = cards.filter(card => card.front.trim() !== '' || card.back.trim() !== '');
       const result = await updateDeck(
-        deck._id.toString(),
+        parsedDeck._id.toString(),
         name,
         description,
         validCards

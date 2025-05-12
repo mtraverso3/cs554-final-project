@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowUpDown, FilterIcon, PlusIcon, SearchIcon, Trash2, X } from "lucide-react";
+import { ArrowUpDown, PlusIcon, SearchIcon, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
