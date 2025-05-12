@@ -3,7 +3,7 @@
 import { authenticateUser, auth0 } from "@/lib/auth/auth";
 import * as users from "@/lib/db/data/users";
 import * as decks from "@/lib/db/data/decks";
-import {Quiz, User, QuizEntry, Deck, Flashcard} from "@/lib/db/data/schema";
+import {Quiz, User, QuizEntry, Deck} from "@/lib/db/data/schema";
 import * as quizzes from "@/lib/db/data/quizzes";
 import { getDeckById } from "@/lib/db/data/decks";
 import { deckToQuiz } from "@/lib/ollama/ollama";
@@ -103,27 +103,7 @@ export async function convertDeckToQuiz(deckId: string) {
 }
 
 export async function deleteQuiz(quizId: string): Promise<string> {
-  try {
-    const userObject: User = await authenticateUser();
-    
-    const quiz: Quiz = await quizzes.getQuizById(quizId);
-    if (!quiz.ownerId.equals(userObject._id)) {
-      throw new Error("Not authorized to delete this quiz");
-    }
-  
-    const quizzesCollection = await quizCollection();
-    const deleteResult = await quizzesCollection.deleteOne({ _id: new ObjectId(quizId) });
-    
-    if (deleteResult.deletedCount === 0) {
-      throw new Error("Quiz could not be deleted");
-    }
-    
-    return JSON.stringify({ success: true });
-  } catch (error) {
-    console.error("Error deleting quiz:", error);
-    return JSON.stringify({ 
-      success: false, 
-      error: error instanceof Error ? error.message : "Unknown error" 
-    });
-  }
+  const userObject: User = await authenticateUser();
+  const userId = userObject._id.toString();
+  return quizzes.deleteQuiz(quizId, userId);
 }
