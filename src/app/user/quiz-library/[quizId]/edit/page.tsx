@@ -1,7 +1,7 @@
 "use server";
 import { getQuizById } from "@/lib/db/data/quizzes";
 import { authenticateUser } from "@/lib/auth/auth";
-import { Quiz, User, QuizEntry } from "@/lib/db/data/schema";
+import { Quiz, QuizEntry, User } from "@/lib/db/data/schema";
 import { unauthorized } from "next/navigation";
 import EditQuizForm from "./EditQuizForm";
 
@@ -12,14 +12,19 @@ function serializeQuiz(quiz: Quiz) {
     name: quiz.name,
     description: quiz.description,
     category: quiz.category,
-    createdAt: quiz.createdAt ? quiz.createdAt.toISOString() : new Date().toISOString(),
-    lastStudied: quiz.lastStudied ? quiz.lastStudied.toISOString() : new Date().toISOString(),
+    createdAt: quiz.createdAt
+      ? quiz.createdAt.toISOString()
+      : new Date().toISOString(),
+    lastStudied: quiz.lastStudied
+      ? quiz.lastStudied.toISOString()
+      : new Date().toISOString(),
+    published: quiz.published,
     questionsList: quiz.questionsList.map((question: QuizEntry) => ({
       question: question.question,
       answers: question.answers.map((answer) => ({
         answer: answer.answer,
         isCorrect: answer.isCorrect,
-      }))
+      })),
     })),
   };
 }
@@ -37,7 +42,11 @@ async function getQuiz(id: string): Promise<Quiz> {
   return quiz;
 }
 
-export default async function EditPage({ params }: { params: Promise<{ quizId: string }> }) {
+export default async function EditPage({
+  params,
+}: {
+  params: Promise<{ quizId: string }>;
+}) {
   try {
     const { quizId } = await params;
     const quiz: Quiz = await getQuiz(quizId);

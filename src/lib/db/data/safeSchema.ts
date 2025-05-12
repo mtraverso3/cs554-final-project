@@ -1,6 +1,5 @@
 import * as Yup from "yup";
 
-
 export const StudyProgressSchema = Yup.object({
   currentCardIndex: Yup.number().default(0),
   knownCardIds: Yup.array().of(Yup.string().defined()).default([]),
@@ -9,53 +8,53 @@ export const StudyProgressSchema = Yup.object({
   studyTime: Yup.number().default(0),
   isReviewMode: Yup.boolean().default(false),
   isCompleted: Yup.boolean().default(false),
-  reviewingCardIds: Yup.array().of(Yup.string().defined()).default([])
+  reviewingCardIds: Yup.array().of(Yup.string().defined()).default([]),
 });
 
 export type StudyProgress = Yup.InferType<typeof StudyProgressSchema>;
 
 export const FlashcardInputSchema = Yup.object({
-    _id: Yup.string().required(),
-    front: Yup.string()
-        .trim()
-        .required("Front text is required")
-        .min(1, "Must be non-empty"),
-    back: Yup.string()
-        .trim()
-        .required("Back text is required")
-        .min(1, "Must be non-empty"),
+  _id: Yup.string().required(),
+  front: Yup.string()
+    .trim()
+    .required("Front text is required")
+    .min(1, "Must be non-empty"),
+  back: Yup.string()
+    .trim()
+    .required("Back text is required")
+    .min(1, "Must be non-empty"),
 });
 
 export type FlashcardInput = Yup.InferType<typeof FlashcardInputSchema>;
 export const DeckInputSchema = Yup.object({
-    _id: Yup.string().required("Deck Id is required"),
-    name: Yup.string()
-        .trim()
-        .required("Name is required")
-        .min(3, "Name must be at least 3 characters")
-        .max(25, "Name must be at most 25 characters")
-        .matches(/[a-zA-Z]/, "Name must include at least one letter (not just numbers)"),
+  _id: Yup.string().required("Deck Id is required"),
+  name: Yup.string()
+    .trim()
+    .required("Name is required")
+    .min(3, "Name must be at least 3 characters")
+    .max(25, "Name must be at most 25 characters")
+    .matches(
+      /[a-zA-Z]/,
+      "Name must include at least one letter (not just numbers)",
+    ),
 
-    description: Yup.string()
-        .trim()
-        .required("Description is required")
-        .min(10, "Description must be at least 10 characters")
-        .max(256, "Description must be at most 256 characters")
-        .matches(/[a-zA-Z]/, "Description must contain letters"),
-    flashcardList: Yup.array()
-        .of(FlashcardInputSchema)
-        .required("Flashcards must be an array"),
-    category: Yup.string()
-        .trim()
-        .required("Category is required")
-        .min(2, "Category must be at least 2 characters")
-        .max(50, "Category must be at most 50 characters")
-        .matches(/^[A-Za-z]+$/, "Category must contain only letters"),
+  description: Yup.string()
+    .trim()
+    .required("Description is required")
+    .min(10, "Description must be at least 10 characters")
+    .max(256, "Description must be at most 256 characters")
+    .matches(/[a-zA-Z]/, "Description must contain letters"),
+  flashcardList: Yup.array()
+    .of(FlashcardInputSchema)
+    .required("Flashcards must be an array"),
+  category: Yup.string()
+    .trim()
+    .required("Category is required")
+    .min(2, "Category must be at least 2 characters")
+    .max(50, "Category must be at most 50 characters")
+    .matches(/^[A-Za-z]+$/, "Category must contain only letters"),
 
-  published: Yup.boolean()
-      .default(false)
-      .required("Public is required"),
-
+  published: Yup.boolean().default(false).required("Public is required"),
 });
 
 export type DeckInput = Yup.InferType<typeof DeckInputSchema>;
@@ -66,7 +65,10 @@ export const DeckCreateSchema = Yup.object({
     .required("Name is required")
     .min(3, "Name must be at least 3 characters")
     .max(25, "Name must be at most 25 characters")
-    .matches(/[a-zA-Z]/, "Name must include at least one letter (not just numbers)"),
+    .matches(
+      /[a-zA-Z]/,
+      "Name must include at least one letter (not just numbers)",
+    ),
 
   description: Yup.string()
     .trim()
@@ -80,13 +82,11 @@ export const DeckCreateSchema = Yup.object({
     .min(2, "Category must be at least 2 characters")
     .max(50, "Category must be at most 50 characters")
     .matches(/^[A-Za-z]+$/, "Category must contain only letters"),
-
 });
 
 export type DeckCreate = Yup.InferType<typeof DeckCreateSchema>;
 
 export const QuizInputEntrySchema = Yup.object({
-
   question: Yup.string()
     .trim()
     .required("Question is required")
@@ -133,6 +133,7 @@ export const QuizInputSchema = Yup.object({
     .trim()
     .required("Category is required")
     .min(1, "Must be a non-empty string"),
+  published: Yup.boolean().default(false).required("Public is required"),
 });
 
 export const QuizCreateSchema = Yup.object({
@@ -148,9 +149,7 @@ export const QuizCreateSchema = Yup.object({
   category: Yup.string()
     .trim()
     .required("Category is required")
-    .min(1, "Must be a non-empty string")
+    .min(1, "Must be a non-empty string"),
 });
 
-
 export type QuizInput = Yup.InferType<typeof QuizInputSchema>;
-

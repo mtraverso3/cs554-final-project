@@ -7,11 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { QuizCreateSchema } from "@/lib/db/data/safeSchema";
 import * as Yup from "yup";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
 interface QuizForm {
   name: string;
   description: string;
   category: string;
+  published: boolean;
 }
 
 export default function CreateQuiz() {
@@ -20,15 +23,19 @@ export default function CreateQuiz() {
     name: "",
     description: "",
     category: "",
+    published: false,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string[] | null>(null);
 
   const handleInputChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
     setQuizInfo((prev) => ({ ...prev, [name]: value }));
+  };
+  const handleSwitchChange = (checked: boolean) => {
+    setQuizInfo((prev) => ({ ...prev, published: checked }));
   };
 
   const finishQuiz = async () => {
@@ -42,15 +49,21 @@ export default function CreateQuiz() {
       }
     }
 
-    
     setIsSubmitting(true);
-    
+
     try {
-      await addQuiz(quizInfo.name, quizInfo.description, quizInfo.category);
+      await addQuiz(
+        quizInfo.name,
+        quizInfo.description,
+        quizInfo.category,
+        quizInfo.published,
+      );
       router.push("/user/quiz-library");
     } catch (error) {
       console.error(error);
-      setError([error instanceof Error ? error.message : "Error creating quiz"]);
+      setError([
+        error instanceof Error ? error.message : "Error creating quiz",
+      ]);
     } finally {
       setIsSubmitting(false);
     }
@@ -61,7 +74,10 @@ export default function CreateQuiz() {
       <h1 className="text-3xl font-bold mb-6">Create New Quiz</h1>
 
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded space-y-1" role="alert">
+        <div
+          className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded space-y-1"
+          role="alert"
+        >
           {Array.isArray(error) ? (
             <ul className="list-disc list-inside text-sm">
               {error.map((errMsg, idx) => (
@@ -73,7 +89,7 @@ export default function CreateQuiz() {
           )}
         </div>
       )}
-      
+
       <div className="space-y-6">
         <div className="space-y-2">
           <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
@@ -87,7 +103,7 @@ export default function CreateQuiz() {
             required
           />
         </div>
-        
+
         <div className="space-y-2">
           <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
             Description*
@@ -101,7 +117,7 @@ export default function CreateQuiz() {
             required
           />
         </div>
-        
+
         <div className="space-y-2">
           <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
             Category*
@@ -114,12 +130,19 @@ export default function CreateQuiz() {
             required
           />
         </div>
-        
-        <Button 
-          onClick={finishQuiz}
-          disabled={isSubmitting}
-          className="w-full"
-        >
+        <div className="space-y-2">
+          <Label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+            Public
+          </Label>
+          <Switch
+            name="published"
+            checked={quizInfo.published}
+            onCheckedChange={handleSwitchChange}
+            required
+          />
+        </div>
+
+        <Button onClick={finishQuiz} disabled={isSubmitting} className="w-full">
           {isSubmitting ? "Creating..." : "Create Quiz"}
         </Button>
       </div>

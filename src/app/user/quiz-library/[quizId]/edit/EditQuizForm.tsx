@@ -5,12 +5,18 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2, X, Check, ArrowLeft, HelpCircle } from "lucide-react";
+import { ArrowLeft, Check, HelpCircle, Plus, Trash2, X } from "lucide-react";
 import { updateQuiz } from "@/lib/quizForms";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { QuizInput, QuizInputEntry, QuizInputSchema } from "@/lib/db/data/safeSchema";
-import * as Yup from "yup"; // safe for front end
+import {
+  QuizInput,
+  QuizInputEntry,
+  QuizInputSchema,
+} from "@/lib/db/data/safeSchema";
+import * as Yup from "yup";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch"; // safe for front end
 
 // type QuizAnswer = {
 //   answer: string;
@@ -37,32 +43,36 @@ export default function EditQuizForm({ quiz }: { quiz: QuizInput }) {
   const router = useRouter();
   const [name, setName] = useState(quiz.name);
   const [description, setDescription] = useState(quiz.description);
+  const [published, setPublished] = useState(quiz.published);
+
   const [category, setCategory] = useState(quiz.category);
   const [questions, setQuestions] = useState<QuizInputEntry[]>(
     quiz.questionsList.length > 0
-      ? quiz.questionsList.map(question => ({
+      ? quiz.questionsList.map((question) => ({
           question: question.question,
-          answers: question.answers.map(answer => ({
+          answers: question.answers.map((answer) => ({
             answer: answer.answer,
-            isCorrect: answer.isCorrect
-          }))
+            isCorrect: answer.isCorrect,
+          })),
         }))
-      : [{
-          question: "",
-          answers: [
-            { answer: "", isCorrect: false },
-            { answer: "", isCorrect: false },
-            { answer: "", isCorrect: false },
-            { answer: "", isCorrect: false }
-          ]
-        }]
+      : [
+          {
+            question: "",
+            answers: [
+              { answer: "", isCorrect: false },
+              { answer: "", isCorrect: false },
+              { answer: "", isCorrect: false },
+              { answer: "", isCorrect: false },
+            ],
+          },
+        ],
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string[] | null>(null);
   const [showHelp, setShowHelp] = useState(false);
 
   const addQuestion = () => {
-    setQuestions(prev => [
+    setQuestions((prev) => [
       ...prev,
       {
         question: "",
@@ -70,15 +80,18 @@ export default function EditQuizForm({ quiz }: { quiz: QuizInput }) {
           { answer: "", isCorrect: false },
           { answer: "", isCorrect: false },
           { answer: "", isCorrect: false },
-          { answer: "", isCorrect: false }
-        ]
-      }
+          { answer: "", isCorrect: false },
+        ],
+      },
     ]);
   };
 
   const addAnswerOption = (questionIndex: number) => {
     const updatedQuestions = [...questions];
-    updatedQuestions[questionIndex].answers.push({ answer: "", isCorrect: false });
+    updatedQuestions[questionIndex].answers.push({
+      answer: "",
+      isCorrect: false,
+    });
     setQuestions(updatedQuestions);
   };
 
@@ -92,7 +105,7 @@ export default function EditQuizForm({ quiz }: { quiz: QuizInput }) {
   };
 
   const removeQuestion = (index: number) => {
-    setQuestions(prev => prev.filter((_, i) => i !== index));
+    setQuestions((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleQuestionChange = (index: number, value: string) => {
@@ -101,7 +114,11 @@ export default function EditQuizForm({ quiz }: { quiz: QuizInput }) {
     setQuestions(updatedQuestions);
   };
 
-  const handleAnswerChange = (questionIndex: number, answerIndex: number, value: string) => {
+  const handleAnswerChange = (
+    questionIndex: number,
+    answerIndex: number,
+    value: string,
+  ) => {
     const updatedQuestions = [...questions];
     updatedQuestions[questionIndex].answers[answerIndex].answer = value;
     setQuestions(updatedQuestions);
@@ -114,9 +131,7 @@ export default function EditQuizForm({ quiz }: { quiz: QuizInput }) {
     setQuestions(updatedQuestions);
   };
 
-
   const handleSave = async () => {
-
     setSaving(true);
     const formData = {
       _id: quiz._id.toString(),
@@ -137,12 +152,7 @@ export default function EditQuizForm({ quiz }: { quiz: QuizInput }) {
     }
 
     try {
-      const result = await updateQuiz(
-        quiz._id,
-        name,
-        description,
-        questions
-      );
+      const result = await updateQuiz(quiz._id, name, description, questions);
 
       const parsedResult = JSON.parse(result);
 
@@ -163,7 +173,10 @@ export default function EditQuizForm({ quiz }: { quiz: QuizInput }) {
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="flex items-center justify-between mb-6">
-        <Link href={`/user/quiz-library/${quiz._id}`} className="flex items-center text-gray-600 hover:text-gray-900">
+        <Link
+          href={`/user/quiz-library/${quiz._id}`}
+          className="flex items-center text-gray-600 hover:text-gray-900"
+        >
           <Button variant="outline">
             <ArrowLeft className="mr-2" size={16} />
             Back to Quiz
@@ -191,16 +204,30 @@ export default function EditQuizForm({ quiz }: { quiz: QuizInput }) {
           <ul className="list-disc pl-5 text-blue-700 space-y-1 text-sm">
             <li>Every question must have at least 2 answer options</li>
             <li>Each question must have at least one correct answer</li>
-            <li>You can mark multiple answers as correct for a single question</li>
-            <li>Users will need to select all correct answers to get full credit for a question</li>
-            <li>To delete an answer option, click the X button next to it (minimum 2 required)</li>
-            <li>To delete an entire question, click the trash icon in the top-right corner</li>
+            <li>
+              You can mark multiple answers as correct for a single question
+            </li>
+            <li>
+              Users will need to select all correct answers to get full credit
+              for a question
+            </li>
+            <li>
+              To delete an answer option, click the X button next to it (minimum
+              2 required)
+            </li>
+            <li>
+              To delete an entire question, click the trash icon in the
+              top-right corner
+            </li>
           </ul>
         </div>
       )}
 
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded space-y-1" role="alert">
+        <div
+          className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded space-y-1"
+          role="alert"
+        >
           {Array.isArray(error) ? (
             <ul className="list-disc list-inside text-sm">
               {error.map((errMsg, idx) => (
@@ -253,6 +280,16 @@ export default function EditQuizForm({ quiz }: { quiz: QuizInput }) {
                   placeholder="Enter quiz category (e.g., Math, Science, History)"
                 />
               </div>
+              {/* Published (switch true/false)*/}
+              <div className="space-y-2">
+                <Label>Public</Label>
+                <Switch
+                  name="published"
+                  checked={published}
+                  onCheckedChange={setPublished}
+                  required
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -280,7 +317,9 @@ export default function EditQuizForm({ quiz }: { quiz: QuizInput }) {
                     </label>
                     <Input
                       value={question.question}
-                      onChange={(e) => handleQuestionChange(qIndex, e.target.value)}
+                      onChange={(e) =>
+                        handleQuestionChange(qIndex, e.target.value)
+                      }
                       placeholder="Enter your question"
                     />
                   </div>
@@ -296,7 +335,13 @@ export default function EditQuizForm({ quiz }: { quiz: QuizInput }) {
                           <div className="flex-1">
                             <Input
                               value={answer.answer}
-                              onChange={(e) => handleAnswerChange(qIndex, aIndex, e.target.value)}
+                              onChange={(e) =>
+                                handleAnswerChange(
+                                  qIndex,
+                                  aIndex,
+                                  e.target.value,
+                                )
+                              }
                               placeholder={`Answer option ${aIndex + 1}`}
                             />
                           </div>
@@ -306,8 +351,10 @@ export default function EditQuizForm({ quiz }: { quiz: QuizInput }) {
                               type="button"
                               variant={answer.isCorrect ? "default" : "outline"}
                               size="sm"
-                              className={`min-w-[100px] ${answer.isCorrect ? 'bg-green-600 hover:bg-green-700' : ''}`}
-                              onClick={() => toggleCorrectAnswer(qIndex, aIndex)}
+                              className={`min-w-[100px] ${answer.isCorrect ? "bg-green-600 hover:bg-green-700" : ""}`}
+                              onClick={() =>
+                                toggleCorrectAnswer(qIndex, aIndex)
+                              }
                             >
                               {answer.isCorrect ? (
                                 <>
@@ -337,7 +384,8 @@ export default function EditQuizForm({ quiz }: { quiz: QuizInput }) {
 
                   <div className="flex justify-between items-center mt-4">
                     <div className="text-sm text-gray-500">
-                      {question.answers.filter(a => a.isCorrect).length > 1 && (
+                      {question.answers.filter((a) => a.isCorrect).length >
+                        1 && (
                         <span className="text-blue-500">
                           Multiple correct answers allowed
                         </span>
@@ -371,25 +419,32 @@ export default function EditQuizForm({ quiz }: { quiz: QuizInput }) {
 
         {/* Action Buttons */}
         <div className="flex justify-between pt-4">
-          <Button
-            variant="outline"
-            asChild
-          >
-            <Link href={`/user/quiz-library/${quiz._id}`}>
-              Cancel
-            </Link>
+          <Button variant="outline" asChild>
+            <Link href={`/user/quiz-library/${quiz._id}`}>Cancel</Link>
           </Button>
 
-          <Button
-            onClick={handleSave}
-            disabled={saving}
-            className="px-6"
-          >
+          <Button onClick={handleSave} disabled={saving} className="px-6">
             {saving ? (
               <>
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <svg
+                  className="animate-spin -ml-1 mr-2 h-4 w-4"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
                 </svg>
                 Saving...
               </>
