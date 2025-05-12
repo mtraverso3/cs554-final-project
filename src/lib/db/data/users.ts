@@ -10,7 +10,6 @@ export async function createUser(
   firstName: string,
   lastName: string,
 ): Promise<User> {
-
   const userCollection = await users();
   const existingUser = await userCollection.findOne({ sub: sub.trim() });
   if (existingUser) {
@@ -32,9 +31,9 @@ export async function createUser(
       throw new Error("Error inserting new user");
     }
     return newUser;
-  }
-  finally {
+  } finally {
     const client = await redisClient();
+    await client.del(`user:${newUser._id}`);
     await client.del(`user:sub:${sub.trim()}`);
   }
 }
@@ -82,19 +81,30 @@ export async function getUserBySub(sub: string): Promise<User> {
   return foundUser;
 }
 
-export async function updateUser(id: string, firstName: string, lastName: string) {
+export async function updateUser(
+  id: string,
+  firstName: string,
+  lastName: string,
+): Promise<User> {
   const theUsers = await users();
   const theUser = await getUserById(id);
   theUser.firstName = firstName;
   theUser.lastName = lastName;
+  try {
     const theInfo = await theUsers.findOneAndUpdate(
-    { _id: new ObjectId(id) },
-    { $set: theUser },
-    { returnDocument: "after" }
-  );
-  if (!theInfo) {
-    throw "Could not update user.";
+      { _id: new ObjectId(id) },
+      { $set: theUser },
+      { returnDocument: "after" },
+    );
+    if (!theInfo) {
+      throw "Could not update user.";
+    }
+    return await getUserById(id);
+  } finally {
+    const client = await redisClient();
+    console.log(`user:${id}`);
+    console.log(`user:sub:${theUser.sub.trim()}`);
+    await client.del(`user:sub:${theUser.sub.trim()}`);
+    await client.del(`user:${id}`);
   }
-  const finalUser = await getUserById(id);
-  return finalUser;
 }

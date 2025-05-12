@@ -124,7 +124,6 @@ export default function EditQuizForm({ quiz }: { quiz: QuizInput }) {
       description,
       category: quiz.category, // assuming category is not editable
       questionsList: questions,
-      attempts: quiz.attempts,
     };
     try {
       await QuizInputSchema.validate(formData, { abortEarly: false });

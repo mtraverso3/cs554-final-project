@@ -20,6 +20,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import React from "react";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+
+const activeClasses = "bg-zinc-800 text-white hover:bg-zinc-800 hover:text-white";
 
 const appLinks = [
   {
@@ -50,6 +54,8 @@ export function UserSidebar({ user }: { user: { name: string } }) {
     // toggleSidebar,
   } = useSidebar();
 
+  const pathname = usePathname();
+
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
@@ -68,23 +74,32 @@ export function UserSidebar({ user }: { user: { name: string } }) {
         <SidebarGroup>
           <SidebarGroupLabel>Application</SidebarGroupLabel>
           <SidebarMenu>
-            {appLinks.map((item) => (
-              <SidebarMenuItem key={item.name}>
-                <SidebarMenuButton asChild>
-                  <Link href={item.url}>
-                    {item.icon}
-                    <span>{item.name}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
+            {appLinks.map((item) => {
+              const isActive = pathname === item.url;
+              return (
+                <SidebarMenuItem key={item.name}>
+                  <SidebarMenuButton
+                    asChild
+                    className={cn(isActive && activeClasses)}
+                  >
+                    <Link href={item.url} aria-current={isActive ? "page" : undefined}>
+                      {item.icon}
+                      <span>{item.name}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              );
+            })}
           </SidebarMenu>
         </SidebarGroup>
         <SidebarGroup>
           <SidebarGroupLabel>Explore Public</SidebarGroupLabel>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild>
+              <SidebarMenuButton
+                asChild
+                className={cn(pathname === "/user/explore/decks" && activeClasses)}
+              >
                 <Link href="/user/explore/decks">
                   <LayersIcon />
                   <span>Explore Decks</span>
@@ -92,7 +107,10 @@ export function UserSidebar({ user }: { user: { name: string } }) {
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild>
+              <SidebarMenuButton
+                asChild
+                className={cn(pathname === "/user/explore/quizzes" && activeClasses)}
+              >
                 <Link href="/user/explore/quizzes">
                   <BookOpenIcon />
                   <span>Explore Quizzes</span>
@@ -105,7 +123,10 @@ export function UserSidebar({ user }: { user: { name: string } }) {
           <SidebarGroupLabel>Account</SidebarGroupLabel>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild>
+              <SidebarMenuButton
+                asChild
+                className={cn(pathname === "/user/profile" && activeClasses)}
+              >
                 <Link href="/user/profile">
                   <User />
                   <span>Profile</span>
@@ -113,15 +134,21 @@ export function UserSidebar({ user }: { user: { name: string } }) {
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link href="/user/settings">
+              <SidebarMenuButton
+                asChild
+                className={cn(pathname === "/user/profile/edit" && activeClasses)}
+              >
+                <Link href="/user/profile/edit">
                   <SettingsIcon />
                   <span>Settings</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild>
+              <SidebarMenuButton
+                asChild
+                className={cn(pathname === "/auth/logout" && activeClasses)}
+              >
                 <a href="/auth/logout">
                   <LogOut />
                   <span>Logout</span>
