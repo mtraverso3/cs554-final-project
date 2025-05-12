@@ -4,12 +4,14 @@ import {
   QuizEntrySchema,
   QuizAttempt,
   QuizAttemptSchema,
-  QuizEntry, User,
+  QuizEntry,
 } from "@/lib/db/data/schema";
 import { ObjectId } from "mongodb";
 import {quizzes} from "@/lib/db/config/mongoCollections";
 import { getUserById } from "@/lib/db/data/users";
-import {authenticateUser} from "@/lib/auth/auth";
+import { redisClient } from "@/lib/db/config/redisConnection";
+import { deserializeQuiz, serializeQuiz } from "@/lib/db/data/serialize";
+
 
 export async function createQuiz(
   name: string,
@@ -54,6 +56,14 @@ export async function getQuizById(id: string): Promise<Quiz> {
     throw new Error("Invalid ObjectId");
   }
 
+  const client = await redisClient();
+
+  const cacheKey = `quiz:${id}`;
+  const cachedQuiz = await client.get(cacheKey);
+  if (cachedQuiz) {
+    return deserializeQuiz(cachedQuiz);
+  }
+
   const quizCollection = await quizzes();
   let quiz;
   try {
@@ -66,6 +76,8 @@ export async function getQuizById(id: string): Promise<Quiz> {
   if (!quiz) {
     throw new Error("Quiz not found");
   }
+  await client.set(cacheKey, serializeQuiz(quiz), { EX: 3600 });
+
   return quiz;
 }
 
@@ -100,6 +112,15 @@ export async function getQuizzesByUserId(
     throw new Error("Invalid ObjectId");
   }
 
+  const client = await redisClient();
+  const cacheKey = `quizzes:user:${userId}`;
+  const cached = await client.get(cacheKey);
+  if (cached) {
+    const serializedArray: string[] = JSON.parse(cached);
+    return serializedArray.map(s => deserializeQuiz(s));
+  }
+
+
   const quizCollection = await quizzes();
   let quizList;
   try {
@@ -112,6 +133,8 @@ export async function getQuizzesByUserId(
   if (!quizList) {
     throw new Error("Decks not found");
   }
+  const serializedList = quizList.map(serializeQuiz);
+  await client.set(cacheKey, JSON.stringify(serializedList), { EX: 3600 });
   return quizList;
 }
 export async function updateQuiz(
@@ -154,6 +177,44 @@ export async function updateQuiz(
       success: false,
       error: error instanceof Error ? error.message : "Unknown error"
     });
+  }
+  finally {
+    const client = await redisClient();
+    const cacheKey = `quiz:${quizId}`;
+    const userCacheKey = `quizzes:user:${userId}`;
+    await client.del(cacheKey);
+    await client.del(userCacheKey);
+  }
+}
+
+export async function deleteQuiz(quizId: string, userId: string): Promise<string> {
+  try {
+    const quiz: Quiz = await getQuizById(quizId);
+    if (!quiz.ownerId.equals(new ObjectId(userId))) {
+      throw new Error("Not authorized to delete this quiz");
+    }
+
+    const quizzesCollection = await quizzes();
+    const deleteResult = await quizzesCollection.deleteOne({ _id: new ObjectId(quizId) });
+
+    if (deleteResult.deletedCount === 0) {
+      throw new Error("Quiz could not be deleted");
+    }
+
+    return JSON.stringify({ success: true });
+  } catch (error) {
+    console.error("Error deleting quiz:", error);
+    return JSON.stringify({
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
+  finally {
+    const client = await redisClient();
+    const cacheKey = `quiz:${quizId}`;
+    const userCacheKey = `quizzes:user:${userId}`;
+    await client.del(cacheKey);
+    await client.del(userCacheKey);
   }
 }
 
