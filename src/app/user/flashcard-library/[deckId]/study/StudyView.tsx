@@ -99,6 +99,8 @@ export default function StudyView({ deck }: { deck: DeckDTO }) {
   const [showResumeDialog, setShowResumeDialog] = useState(false);
   const [cardMasteryData, setCardMasteryData] = useState<Record<string, CardWithMastery>>({});
   const [showSettings, setShowSettings] = useState(false);
+  const [error, setError] = useState<string[] | null>(null);
+
 
   const loadCardMasteryData = useCallback(() => {
     try {
@@ -285,21 +287,28 @@ useEffect(() => {
         const knownCardIds = knownCards.map(card => card._id);
         const unknownCardIds = unknownCards.map(card => card._id);
         const reviewingCardIds = cards.map(card => card._id);
+        try{
+          const progress = StudyProgressSchema.validateSync({
+            currentCardIndex,
+            knownCardIds,
+            unknownCardIds,
+            lastPosition: currentCardIndex,
+            studyTime,
+            isReviewMode: cards.length !== deck.flashcardList.length,
+            isCompleted: studyComplete,
+            reviewingCardIds
+          });
+          await saveStudyProgress(deck._id, progress);
 
-        const progress = StudyProgressSchema.validateSync({
-          currentCardIndex,
-          knownCardIds,
-          unknownCardIds,
-          lastPosition: currentCardIndex,
-          studyTime,
-          isReviewMode: cards.length !== deck.flashcardList.length,
-          isCompleted: studyComplete,
-          reviewingCardIds
-        });
-
-        await saveStudyProgress(deck._id, progress);
+        }catch (error) {
+          if (error instanceof Yup.ValidationError) {
+            setError(error.errors); // Or join all errors
+            return;
+          }
+        }
       } catch (error) {
         console.error("Failed to save progress:", error);
+        setError(["Failed to save progress"]);
       }
     }
   };
@@ -342,23 +351,25 @@ useEffect(() => {
     setPreviousCardIndex(null);
     setPreviousCardResponses({});
     setCards([...deck.flashcardList]);
+    try{
+      const progress = StudyProgressSchema.validateSync({
+        currentCardIndex,
+        knownCardIds: [],
+        unknownCardIds: [],
+        lastPosition: currentCardIndex,
+        studyTime,
+        isReviewMode: cards.length !== deck.flashcardList.length,
+        isCompleted: studyComplete,
+        reviewingCardIds:[]
+      });
+      saveStudyProgress(deck._id, progress, true);
 
-    const progress = StudyProgressSchema.validateSync({
-      currentCardIndex: 0,
-      knownCardIds: [],
-      unknownCardIds: [],
-      lastPosition: 0,
-      studyTime: 0,
-      isReviewMode: false,
-      isCompleted: false,
-      reviewingCardIds: []
-    })
-
-    saveStudyProgress(
-      deck._id,
-      progress,
-      true
-    );
+    }catch (error) {
+      if (error instanceof Yup.ValidationError) {
+        setError(error.errors); // Or join all errors
+        return;
+      }
+    }
 
     setShowResumeDialog(false);
   };
@@ -503,17 +514,26 @@ useEffect(() => {
   const moveToNextCard = useCallback(() => {
     if (currentCardIndex >= cards.length - 1) {
       setStudyComplete(true);
-      const completeProgress = StudyProgressSchema.validateSync({
-        currentCardIndex,
-        knownCardIds: knownCards.map(card => card._id),
-        unknownCardIds: unknownCards.map(card => card._id),
-        lastPosition: currentCardIndex,
-        studyTime,
-        isReviewMode: cards.length !== deck.flashcardList.length,
-        isCompleted: true,
-        reviewingCardIds: cards.map(card => card._id)
-      });
-      saveStudyProgress(deck._id, completeProgress, false);
+      try{
+        const completeProgress = StudyProgressSchema.validateSync({
+          currentCardIndex,
+          knownCardIds: knownCards.map(card => card._id),
+          unknownCardIds: unknownCards.map(card => card._id),
+          lastPosition: currentCardIndex,
+          studyTime,
+          isReviewMode: cards.length !== deck.flashcardList.length,
+          isCompleted: true,
+          reviewingCardIds: cards.map(card => card._id)
+        });
+        saveStudyProgress(deck._id, completeProgress, false);
+
+      }catch (error) {
+        if (error instanceof Yup.ValidationError) {
+          setError(error.errors); // Or join all errors
+          return;
+        }
+      }
+
     } else {
       setCurrentCardIndex(prev => prev + 1);
       setIsFlipped(false);
@@ -722,17 +742,26 @@ useEffect(() => {
     setPreviousCardResponses({});
     setIsTimerActive(true);
 
-    const unknownProgress = StudyProgressSchema.validateSync({
-      currentCardIndex: 0,
-      knownCardIds: [],
-      unknownCardIds: [],
-      lastPosition: 0,
-      studyTime: 0,
-      isReviewMode: true,
-      isCompleted: false,
-      reviewingCardIds: cardsToReview.map(card => card._id)
-    });
-    saveStudyProgress(deck._id, unknownProgress, false);
+    try{
+      const unknownProgress = StudyProgressSchema.validateSync({
+        currentCardIndex: 0,
+        knownCardIds: [],
+        unknownCardIds: [],
+        lastPosition: 0,
+        studyTime: 0,
+        isReviewMode: true,
+        isCompleted: false,
+        reviewingCardIds: cardsToReview.map(card => card._id)
+      });
+      saveStudyProgress(deck._id, unknownProgress, true);
+
+    }catch (error) {
+      if (error instanceof Yup.ValidationError) {
+        setError(error.errors); // Or join all errors
+        return;
+      }
+    }
+
 
     setShowNotification(true);
     setTimeout(() => setShowNotification(false), 3000);
@@ -757,7 +786,7 @@ useEffect(() => {
   };
 
   const handleExit = async () => {
-    try {
+    try{
       const exitProgress = StudyProgressSchema.validateSync({
         currentCardIndex,
         knownCardIds: knownCards.map(card => card._id),
@@ -769,8 +798,12 @@ useEffect(() => {
         reviewingCardIds: cards.map(card => card._id)
       });
       await saveStudyProgress(deck._id, exitProgress, false);
-    } catch (error) {
-      console.error("Failed to save progress on exit:", error);
+
+    }catch (error) {
+      if (error instanceof Yup.ValidationError) {
+        setError(error.errors || "failed to save progress"); // Or join all errors
+        return;
+      }
     }
   };
 
@@ -819,6 +852,19 @@ useEffect(() => {
       <div className="flex flex-col items-center justify-center h-[70vh] text-center">
         <h2 className="text-2xl font-bold mb-4">No Flashcards to Study</h2>
         <p className="text-gray-600 mb-6">This deck doesn&apos;t have any flashcards yet.</p>
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded space-y-1" role="alert">
+            {Array.isArray(error) ? (
+              <ul className="list-disc list-inside text-sm">
+                {error.map((errMsg, idx) => (
+                  <li key={idx}>{errMsg}</li>
+                ))}
+              </ul>
+            ) : (
+              <span className="block sm:inline">{error}</span>
+            )}
+          </div>
+        )}
         <div className="flex gap-4">
           <Button asChild>
             <Link href={`/user/flashcard-library/${deck._id}/edit`}>
