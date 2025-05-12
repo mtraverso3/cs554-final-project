@@ -116,6 +116,7 @@ export const QuizInputAttemptSchema = Yup.object({
 export type QuizInputAttempt = Yup.InferType<typeof QuizInputAttemptSchema>;
 
 export const QuizInputSchema = Yup.object({
+  _id: Yup.string().required("Deck Id is required"),
   name: Yup.string()
     .trim()
     .required("Name is required")
@@ -132,9 +133,24 @@ export const QuizInputSchema = Yup.object({
     .trim()
     .required("Category is required")
     .min(1, "Must be a non-empty string"),
-  attempts: Yup.array()
-    .of(QuizInputAttemptSchema).required("Quiz attempts are required")
 });
+
+export const QuizCreateSchema = Yup.object({
+  name: Yup.string()
+    .trim()
+    .required("Name is required")
+    .min(1, "Must be a non-empty string"),
+  description: Yup.string()
+    .trim()
+    .required("Description is required")
+    .min(1, "Must be a non-empty string"),
+
+  category: Yup.string()
+    .trim()
+    .required("Category is required")
+    .min(1, "Must be a non-empty string")
+});
+
 
 export type QuizInput = Yup.InferType<typeof QuizInputSchema>;
 
