@@ -29,7 +29,7 @@ export async function updateDeck(
 export async function deleteDeck(deckId: string): Promise<string> {
   const userObject: User = await authenticateUser();
   const userId = userObject._id.toString();
-  return await decks.deleteDeck(userId, deckId);
+  return await decks.deleteDeck(deckId, userId);
 }
 
 export type StudyProgressData = {
