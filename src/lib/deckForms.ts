@@ -18,11 +18,12 @@ export async function updateDeck(
   name: string,
   description: string,
   flashcards: { front: string; back: string }[],
+  published: boolean
 ): Promise<string> {
   const userObject: User = await authenticateUser();
 
   const userId = userObject._id.toString();
-  return await decks.updateDeck(userId, deckId, name, description, flashcards);
+  return await decks.updateDeck(userId, deckId, name, description, flashcards, published);
 }
 
 export async function deleteDeck(deckId: string): Promise<string> {

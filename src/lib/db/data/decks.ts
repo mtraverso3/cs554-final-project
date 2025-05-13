@@ -58,6 +58,7 @@ export async function updateDeck(
   name: string,
   description: string,
   flashcards: { front: string; back: string }[],
+  published: boolean,
 ): Promise<string> {
   try {
     const deck: Deck = await getDeckById(deckId);
@@ -80,6 +81,7 @@ export async function updateDeck(
           name,
           description,
           flashcardList,
+          published
         },
       },
     );

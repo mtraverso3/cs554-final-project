@@ -61,7 +61,6 @@ export default async function EditPage({
       if (error.message === "Not Authorized") {
         unauthorized();
       } else {
-        console.error(error);
         return (
           <div className="p-8 text-center">
             <h1 className="text-2xl font-bold text-red-600">Error</h1>
