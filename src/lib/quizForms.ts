@@ -4,9 +4,9 @@ import { authenticateUser } from "@/lib/auth/auth";
 import * as decks from "@/lib/db/data/decks";
 import {getDeckById} from "@/lib/db/data/decks";
 import {addComment} from "@/lib/db/data/quizzes";
-import { Deck, Quiz, QuizEntry, User } from "@/lib/db/data/schema";
+import { Deck, Quiz, QuizEntry, User} from "@/lib/db/data/schema";
 import * as quizzes from "@/lib/db/data/quizzes";
-import { getQuizById } from "@/lib/db/data/quizzes";
+import { getQuizById, getBestAttempt, getMostRecentAttempt, getAverageScore, getAttemptsByUser } from "@/lib/db/data/quizzes";
 import { deckToQuiz } from "@/lib/ollama/ollama";
 import { generateQuizEntry } from '@/lib/ollama/ollama';
 
@@ -144,3 +144,31 @@ export async function generateQuizEntryAction(question: string, answer: string) 
     })),
   };
 }
+
+export async function getAllStats(quizId: string): Promise<string> {
+  const userObject: User = await authenticateUser();
+  const userId = userObject._id.toString();
+  const getDateString = (date: Date) => {
+    let hours = date.getHours();
+    const minutes = date.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12; 
+    const theMinutes = minutes < 10 ? '0'+minutes : minutes;
+    const strTime = hours + ':' + theMinutes + ' ' + ampm;
+    return date.getMonth() + "/" + date.getDate() + "/" + date.getFullYear() + " " + strTime;
+  }
+  const allAttempts = await getAttemptsByUser(quizId, userId);
+  if(allAttempts.length == 0) {
+    return "";
+  }
+  const best = await getBestAttempt(quizId, userId);
+  const recent = await getMostRecentAttempt(quizId, userId);
+  const average = await getAverageScore(quizId, userId);
+  const returnData = 
+    {numAttempts: allAttempts.length.toString(),
+    best: {score: `${best.score * 100}%`, date: getDateString(best.date)}, 
+    recent: {score: `${recent.score * 100}%`, date: getDateString(recent.date)},
+    average: `${average * 100}%`};
+  return JSON.stringify(returnData);
+} 
