@@ -93,6 +93,7 @@ export default function EditDeckForm({ deck }: { deck: string }) {
         name,
         description,
         validCards,
+          published,
       );
 
       const parsedResult = JSON.parse(result);

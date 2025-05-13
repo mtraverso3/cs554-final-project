@@ -99,10 +99,11 @@ export async function updateQuiz(
   name: string,
   description: string,
   questions: QuizEntry[],
+  published: boolean,
 ): Promise<string> {
   const userObject: User = await authenticateUser();
   const userId = userObject._id.toString();
-  return quizzes.updateQuiz(quizId, userId, name, description, questions);
+  return quizzes.updateQuiz(quizId, userId, name, description, questions, published);
 }
 
 //Not sure if quizId is better as a string or an ObjectId

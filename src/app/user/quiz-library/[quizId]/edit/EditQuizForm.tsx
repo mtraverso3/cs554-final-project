@@ -213,7 +213,9 @@ export default function EditQuizForm({ quiz }: { quiz: QuizInput }) {
     setSaving(true);
 
     try {
-      const result = await updateQuiz(quiz._id, name, description, questions);
+
+      const result = await updateQuiz(quiz._id, name, description, questions, published);
+
       const parsedResult = JSON.parse(result);
 
       if (parsedResult.success) {
