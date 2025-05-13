@@ -1,4 +1,4 @@
-import { Deck, Quiz, QuizEntry, User, Comment } from "@/lib/db/data/schema";
+import { Deck, Quiz, QuizEntry, User } from "@/lib/db/data/schema";
 import { ObjectId } from "mongodb";
 
 export function serializeDeck(deck: Deck): string {

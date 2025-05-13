@@ -14,8 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import { 
-  ArrowLeft, 
-  User, 
+  ArrowLeft,
   Upload, 
   Save, 
   X, 

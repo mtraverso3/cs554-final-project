@@ -181,7 +181,6 @@ export default function CreateQuiz() {
   };
 
   const validateAllQuestions = () => {
-    const newErrors: {[key: number]: string[]} = {};
     let isValid = true;
 
     questions.forEach((question, index) => {

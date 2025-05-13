@@ -85,7 +85,7 @@ export default function DeleteAccountButton() {
             )}
             
             <p className="text-sm font-medium">
-              To confirm, type "delete my account" below:
+              To confirm, type &quot;delete my account&quot; below:
             </p>
             
             <Input
