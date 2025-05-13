@@ -12,6 +12,11 @@ function serializeQuiz(quiz: Quiz) {
     name: quiz.name,
     description: quiz.description,
     category: quiz.category,
+    comments: quiz.comments.map((c) => ({
+      createdAt: c.createdAt.toISOString(),
+      ownerId: c.ownerId.toString(),
+      text: c.text,
+    })),
     createdAt: quiz.createdAt
       ? quiz.createdAt.toISOString()
       : new Date().toISOString(),

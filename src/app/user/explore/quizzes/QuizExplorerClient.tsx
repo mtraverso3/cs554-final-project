@@ -5,9 +5,10 @@ import QuizCard from "@/app/user/explore/quizzes/QuizCard";
 import type { serializedQuiz } from "@/lib/db/data/serialize";
 
 export default function PublicQuizExplorerClient({
-  quizzes,
+  quizzes, currentUserId,
 }: {
   quizzes: serializedQuiz[];
+  currentUserId: string;
 }) {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
@@ -77,7 +78,7 @@ export default function PublicQuizExplorerClient({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtered.map((quiz) => (
             <div key={quiz._id}>
-              <QuizCard quiz={quiz} />
+              <QuizCard quiz={quiz} currentUserId={currentUserId} />
             </div>
           ))}
         </div>
