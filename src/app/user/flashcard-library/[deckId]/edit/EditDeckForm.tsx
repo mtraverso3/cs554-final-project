@@ -12,6 +12,7 @@ import { DeckInputSchema, FlashcardInput } from "@/lib/db/data/safeSchema"; // s
 import * as Yup from "yup";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { convertDeckToQuiz } from '@/lib/quizForms';
 
 export default function EditDeckForm({ deck }: { deck: string }) {
   const parsedDeck = JSON.parse(deck);
@@ -100,6 +101,28 @@ export default function EditDeckForm({ deck }: { deck: string }) {
     } catch (error) {
       console.error("Error saving deck:", error);
       setError(["An unexpected error occurred"]);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleConvertToQuiz = async () => {
+    setError(null);
+    setSaving(true);
+    try {
+      const quizEntries = await convertDeckToQuiz(parsedDeck._id);
+
+      const params = new URLSearchParams({
+        fromDeck: '1',
+        name: name || '',
+        description: description || '',
+        category: category || '',
+        published: String(!!published),
+        questions: JSON.stringify(quizEntries),
+      });
+      router.push(`/user/quiz-library/create?${params.toString()}`);
+    } catch (error) {
+      setError([error instanceof Error ? error.message : 'Failed to convert deck to quiz']);
     } finally {
       setSaving(false);
     }
@@ -215,9 +238,12 @@ export default function EditDeckForm({ deck }: { deck: string }) {
       </div>
 
       {/* Save button */}
-      <div className="flex justify-end">
+      <div className="flex justify-between gap-2">
         <Button disabled={saving} onClick={handleSave}>
           {saving ? "Saving…" : "Save Changes"}
+        </Button>
+        <Button variant="secondary" disabled={saving} onClick={handleConvertToQuiz}>
+          {saving ? "Converting..." : "Convert to Quiz"}
         </Button>
       </div>
     </div>
