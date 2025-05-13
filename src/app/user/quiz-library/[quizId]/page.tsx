@@ -45,8 +45,8 @@ export default async function ViewQuizPage({
 
     
     const quiz: Quiz = await getQuiz(quizId);
-      const userObject = await authenticateUser();
-      const serializedQuiz = serializeQuiz(quiz);
+    const userObject = await authenticateUser();
+    const serializedQuiz = serializeQuiz(quiz);
     return (
         <>
             <QuizView quiz={serializeQuiz2(quiz)} />

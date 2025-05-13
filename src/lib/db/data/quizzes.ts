@@ -295,7 +295,6 @@ export async function addQuizAttempt(
     { $push: { attempts: finalAttempt } },
     { returnDocument: "after" },
   );
-
   if (!updatedQuiz) {
     throw new Error("Failed to add attempt");
   }
@@ -309,9 +308,11 @@ export async function separateAttemptsByUser(
 ): Promise<{ [k: string]: Array<QuizAttempt> }> {
   const theQuiz = await getQuizById(quizId);
   const attempts = theQuiz.attempts;
+  //There could be typing errors with the type here, not sure
   const allAttempts: { [k: string]: Array<QuizAttempt> } = {};
   for (let a = 0; a < attempts.length; a++) {
     const attempt = attempts[a];
+    //This loop could have errors
     const userId = attempt.userId.toString();
     if (!(userId in allAttempts)) {
       allAttempts[userId] = [];
@@ -330,7 +331,15 @@ export async function getAttemptsByUser(
     const theQuiz = await getQuizById(quizId);
     return theQuiz.attempts;
   }
+  /*This code is not working*/
+  console.log("The problem is probably im quizzes.ts, most likely in the function getAttemptsByUser or separateAttemptsByUser.");
   const attemptsObject = await separateAttemptsByUser(quizId);
+  //I would suggest looking at if attemptsObject is correct
+  //It should have a bunch of key-value pairs where the key is the userId in a string
+  //and the value is an array of their attempts
+  //If you have attempted this quiz on your account, there should be a pair with your userID
+  //and your attempts, and "return []" should not get called
+
   if (!(userId in attemptsObject)) {
     return [];
   }

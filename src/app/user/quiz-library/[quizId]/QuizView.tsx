@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronDown, ChevronUp, Edit, X, Check, ArrowLeft, Play, BarChart2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 import { deleteQuiz } from "@/lib/quizForms";
+import { QuizStats } from "@/components/quizStats";
+import { getAllStats } from "@/lib/quizForms";
 
 type QuizAnswer = {
   answer: string;
@@ -34,7 +36,7 @@ export default function QuizView({ quiz }: { quiz: QuizDTO }) {
   const [expandedQuestions, setExpandedQuestions] = useState<Set<number>>(new Set());
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-
+  const [stats, setStats] = useState("");
   const toggleQuestion = (index: number) => {
     const newExpanded = new Set(expandedQuestions);
     if (newExpanded.has(index)) {
@@ -44,7 +46,13 @@ export default function QuizView({ quiz }: { quiz: QuizDTO }) {
     }
     setExpandedQuestions(newExpanded);
   };
-
+  useEffect(() => {
+    const getData = async(id: string) => {
+      const theStats = await getAllStats(id);
+      setStats(theStats);
+    }
+    getData(quiz._id.toString());
+  }, [quiz]);
   const handleDeleteQuiz = async () => {
     setIsDeleting(true);
     try {
@@ -193,7 +201,7 @@ export default function QuizView({ quiz }: { quiz: QuizDTO }) {
           </div>
         )}
       </div>
-      
+      <QuizStats stats = {stats}></QuizStats>
       {/* Delete Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">

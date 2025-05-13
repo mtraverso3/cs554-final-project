@@ -241,7 +241,8 @@ export default function QuizStudy({ quiz }: { quiz: QuizDTO }) {
     setResults(res);
     setQuizCompleted(true);
     try {
-      await addQuizAttempt(quiz._id, res.score);
+      await addQuizAttempt(quiz._id.toString(), res.score);
+      
     } catch (e) {
       console.error(e);
     }
