@@ -1,17 +1,20 @@
 import {
-  Comment, CommentSchema,
+  Comment,
+  CommentSchema,
   Quiz,
   QuizAttempt,
   QuizAttemptSchema,
   QuizEntry,
   QuizEntrySchema,
-  QuizSchema
+  QuizSchema,
 } from "@/lib/db/data/schema";
 import { ObjectId } from "mongodb";
 import { quizzes } from "@/lib/db/config/mongoCollections";
 import { getUserById } from "@/lib/db/data/users";
 import { redisClient } from "@/lib/db/config/redisConnection";
 import { deserializeQuiz, serializeQuiz } from "@/lib/db/data/serialize";
+import { generateEmbedding } from "@/lib/ollama/ollama";
+import { upsertEmbedding } from "@/lib/db/data/embeddings";
 
 export async function createQuiz(
   name: string,
@@ -53,6 +56,27 @@ export async function createQuiz(
       throw new Error("Error inserting new quiz");
     }
 
+    // Async embedding generation (do not await)
+    (async () => {
+      try {
+        const content = [
+          newQuiz.name,
+          newQuiz.description,
+          ...newQuiz.questionsList.map(
+            (q) => `${q.question} ${q.answers.map((a) => a.answer).join(" ")}`,
+          ),
+        ].join("\n");
+        const vector = await generateEmbedding(content);
+        await upsertEmbedding({
+          refId: newQuiz._id,
+          refType: "quiz",
+          vector,
+          content,
+        });
+      } catch (e) {
+        console.error("Embedding generation failed for quiz", newQuiz._id, e);
+      }
+    })();
     return newQuiz;
   } finally {
     const client = await redisClient();
@@ -145,6 +169,7 @@ export async function getQuizzesByUserId(userId: string): Promise<Quiz[]> {
   await client.set(cacheKey, JSON.stringify(serializedList), { EX: 3600 });
   return quizList;
 }
+
 export async function updateQuiz(
   quizId: string,
   userId: string,
@@ -178,6 +203,27 @@ export async function updateQuiz(
       },
     );
 
+    // Async embedding update (do not await)
+    (async () => {
+      try {
+        const content = [
+          name,
+          description,
+          ...questions.map(
+            (q) => `${q.question} ${q.answers.map((a) => a.answer).join(" ")}`,
+          ),
+        ].join("\n");
+        const vector = await generateEmbedding(content);
+        await upsertEmbedding({
+          refId: new ObjectId(quizId),
+          refType: "quiz",
+          vector,
+          content,
+        });
+      } catch (e) {
+        console.error("Embedding update failed for quiz", quizId, e);
+      }
+    })();
     return JSON.stringify({ success: true });
   } catch (error) {
     console.error("Error updating quiz:", error);
@@ -301,6 +347,7 @@ export function average(attempts: Array<QuizAttempt>): number {
   }
   return combinedScore / len;
 }
+
 export function best(attempts: Array<QuizAttempt>): QuizAttempt {
   const len = attempts.length;
   //Typecript does not let me return null, so an error has to be thrown if there are no valid attempts
@@ -316,6 +363,7 @@ export function best(attempts: Array<QuizAttempt>): QuizAttempt {
   }
   return best;
 }
+
 export function mostRecent(attempts: Array<QuizAttempt>): QuizAttempt {
   const len = attempts.length;
   if (len == 0) {
@@ -333,6 +381,7 @@ export function mostRecent(attempts: Array<QuizAttempt>): QuizAttempt {
   }
   return mostRecent;
 }
+
 export async function averageByUser(
   quizId: string,
 ): Promise<{ [k: string]: number }> {
@@ -345,6 +394,7 @@ export async function averageByUser(
   }
   return averages;
 }
+
 export async function bestByUser(
   quizId: string,
 ): Promise<{ [k: string]: QuizAttempt }> {
@@ -357,6 +407,7 @@ export async function bestByUser(
   }
   return bestAttempts;
 }
+
 export async function recentByUser(
   quizId: string,
 ): Promise<{ [k: string]: QuizAttempt }> {
@@ -369,6 +420,7 @@ export async function recentByUser(
   }
   return recentAttempts;
 }
+
 //Returns the average score for that user's attempts, or all attempts if userId is not provided.
 export async function getAverageScore(
   quizId: string,
@@ -385,6 +437,7 @@ export async function getBestAttempt(
   const attempts = await getAttemptsByUser(quizId, userId);
   return best(attempts);
 }
+
 export async function getMostRecentAttempt(
   quizId: string,
   userId?: string,
@@ -460,7 +513,6 @@ export async function addComment(
     await client.del(`quizzes:user:${userId}`);
   }
 }
-
 
 export async function getPublicQuizzes(): Promise<Quiz[]> {
   const quizCollection = await quizzes();

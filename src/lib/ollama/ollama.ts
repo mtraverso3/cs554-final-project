@@ -2,8 +2,9 @@ import { Ollama } from "ollama";
 import { Deck, QuizEntry } from "@/lib/db/data/schema";
 import * as yup from "yup";
 
-const ollama = new Ollama({ //Use env or fallback
-  host: process.env.OLLAMA_API_URL || "http://127.0.0.1:11434"
+const ollama = new Ollama({
+  //Use env or fallback
+  host: process.env.OLLAMA_API_URL || "http://127.0.0.1:11434",
 });
 
 const modelResponseSchema = yup.object({
@@ -28,6 +29,20 @@ const SYSTEM_PROMPT =
   "You are a quiz generator creating multiple choice questions from flashcards. " +
   "Return JSON with fields: 'options' (array of four choices including the correct answer) and " +
   "'correctIndex' (zero-based index of correct answer). Output only valid JSON.";
+
+const OLLAMA_EMBED_MODEL = process.env.OLLAMA_EMBED_MODEL || "bge-large";
+await ollama.pull({ model: OLLAMA_EMBED_MODEL });
+
+export async function generateEmbedding(text: string): Promise<number[]> {
+  const response = await ollama.embeddings({
+    model: OLLAMA_EMBED_MODEL,
+    prompt: text,
+  });
+  if (!response || !response.embedding) {
+    throw new Error("Failed to generate embedding");
+  }
+  return response.embedding;
+}
 
 export async function generateQuizEntry(
   question: string,

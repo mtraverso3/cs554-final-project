@@ -17,13 +17,15 @@ import {
   SettingsIcon,
   User,
   UserIcon,
+  SearchIcon,
 } from "lucide-react";
 import Link from "next/link";
 import React from "react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-const activeClasses = "bg-zinc-800 text-white hover:bg-zinc-800 hover:text-white";
+const activeClasses =
+  "bg-zinc-800 text-white hover:bg-zinc-800 hover:text-white";
 
 const appLinks = [
   {
@@ -82,7 +84,10 @@ export function UserSidebar({ user }: { user: { name: string } }) {
                     asChild
                     className={cn(isActive && activeClasses)}
                   >
-                    <Link href={item.url} aria-current={isActive ? "page" : undefined}>
+                    <Link
+                      href={item.url}
+                      aria-current={isActive ? "page" : undefined}
+                    >
                       {item.icon}
                       <span>{item.name}</span>
                     </Link>
@@ -98,7 +103,9 @@ export function UserSidebar({ user }: { user: { name: string } }) {
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
-                className={cn(pathname === "/user/explore/decks" && activeClasses)}
+                className={cn(
+                  pathname === "/user/explore/decks" && activeClasses,
+                )}
               >
                 <Link href="/user/explore/decks">
                   <LayersIcon />
@@ -109,11 +116,26 @@ export function UserSidebar({ user }: { user: { name: string } }) {
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
-                className={cn(pathname === "/user/explore/quizzes" && activeClasses)}
+                className={cn(
+                  pathname === "/user/explore/quizzes" && activeClasses,
+                )}
               >
                 <Link href="/user/explore/quizzes">
                   <BookOpenIcon />
                   <span>Explore Quizzes</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                className={cn(
+                  pathname === "/user/explore/ai-search" && activeClasses,
+                )}
+              >
+                <Link href="/user/explore/ai-search">
+                  <SearchIcon />
+                  <span>AI Search</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -136,7 +158,9 @@ export function UserSidebar({ user }: { user: { name: string } }) {
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
-                className={cn(pathname === "/user/profile/edit" && activeClasses)}
+                className={cn(
+                  pathname === "/user/profile/edit" && activeClasses,
+                )}
               >
                 <Link href="/user/profile/edit">
                   <SettingsIcon />
