@@ -8,11 +8,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Plus, Trash2 } from "lucide-react";
 import { updateDeck } from "@/lib/deckForms";
 import { useRouter } from "next/navigation";
-import { DeckInputSchema, FlashcardInput } from "@/lib/db/data/safeSchema"; // safe for front end
+import { DeckInputSchema, FlashcardInput, QuizInputEntry } from "@/lib/db/data/safeSchema"; // safe for front end
 import * as Yup from "yup";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { convertDeckToQuiz } from '@/lib/quizForms';
+import { generateQuizEntryAction } from '@/lib/quizForms';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function EditDeckForm({ deck }: { deck: string }) {
   const parsedDeck = JSON.parse(deck);
@@ -33,6 +35,8 @@ export default function EditDeckForm({ deck }: { deck: string }) {
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string[] | null>(null);
+  const [showProgressModal, setShowProgressModal] = useState(false);
+  const [progressStates, setProgressStates] = useState<{ status: 'pending' | 'loading' | 'success' | 'error'; question: string; error?: string }[]>([]);
 
   const addCard = () =>
     setCards((prev) => [
@@ -109,23 +113,44 @@ export default function EditDeckForm({ deck }: { deck: string }) {
   const handleConvertToQuiz = async () => {
     setError(null);
     setSaving(true);
-    try {
-      const quizEntries = await convertDeckToQuiz(parsedDeck._id);
-
-      const params = new URLSearchParams({
-        fromDeck: '1',
-        name: name || '',
-        description: description || '',
-        category: category || '',
-        published: String(!!published),
-        questions: JSON.stringify(quizEntries),
-      });
-      router.push(`/user/quiz-library/create?${params.toString()}`);
-    } catch (error) {
-      setError([error instanceof Error ? error.message : 'Failed to convert deck to quiz']);
-    } finally {
+    setShowProgressModal(true);
+    setProgressStates(cards.map(card => ({ status: 'pending', question: card.front })));
+    const quizEntries: QuizInputEntry[] = new Array(cards.length);
+    const promises = cards.map((card, i) =>
+      generateQuizEntryAction(card.front, card.back)
+        .then((entry) => {
+          quizEntries[i] = entry;
+          setProgressStates(prev => prev.map((p, idx) => idx === i ? { ...p, status: 'success' } : p));
+        })
+        .catch((err) => {
+          setProgressStates(prev => prev.map((p, idx) => idx === i ? { ...p, status: 'error', error: err instanceof Error ? err.message : 'Error' } : p));
+        })
+        .finally(() => {
+          setProgressStates(prev => prev.map((p, idx) => {
+            if (idx === i && prev[idx].status === 'pending') {
+              return { ...p, status: 'success' };
+            }
+            return p;
+          }));
+        })
+    );
+    await Promise.allSettled(promises);
+    setShowProgressModal(false);
+    if (progressStates.some((p) => p.status === 'error')) {
+      setError(['Failed to generate one or more quiz questions.']);
       setSaving(false);
+      return;
     }
+    const params = new URLSearchParams({
+      fromDeck: '1',
+      name: name || '',
+      description: description || '',
+      category: category || '',
+      published: String(!!published),
+      questions: JSON.stringify(quizEntries),
+    });
+    router.push(`/user/quiz-library/create?${params.toString()}`);
+    setSaving(false);
   };
 
   return (
@@ -246,6 +271,26 @@ export default function EditDeckForm({ deck }: { deck: string }) {
           {saving ? "Converting..." : "Convert to Quiz"}
         </Button>
       </div>
+
+      <Dialog open={showProgressModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Generating Quiz</DialogTitle>
+          </DialogHeader>
+          <div className="my-4 text-center">Generating quiz from deck. This may take a few moments…</div>
+          <div className="space-y-2">
+            {progressStates.map((p, idx) => (
+              <div key={idx} className="flex items-center gap-2">
+                <span className="truncate flex-1 text-left text-xs">{p.question}</span>
+                {p.status === 'pending' && <Skeleton className="h-2 w-24" />}
+                {p.status === 'loading' && <Skeleton className="h-2 w-24 animate-pulse bg-blue-800" />}
+                {p.status === 'success' && <span className="text-green-600 text-xs">✓</span>}
+                {p.status === 'error' && <span className="text-red-600 text-xs">✗</span>}
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

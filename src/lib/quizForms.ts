@@ -7,6 +7,7 @@ import { Deck, Quiz, QuizEntry, User } from "@/lib/db/data/schema";
 import * as quizzes from "@/lib/db/data/quizzes";
 import { getQuizById } from "@/lib/db/data/quizzes";
 import { deckToQuiz } from "@/lib/ollama/ollama";
+import { generateQuizEntry } from '@/lib/ollama/ollama';
 
 export async function createFlashcard(front: string, back: string) {
   console.log(front, back);
@@ -112,4 +113,15 @@ export async function deleteQuiz(quizId: string): Promise<string> {
   const userObject: User = await authenticateUser();
   const userId = userObject._id.toString();
   return quizzes.deleteQuiz(quizId, userId);
+}
+
+export async function generateQuizEntryAction(question: string, answer: string) {
+  const result = await generateQuizEntry(question, answer);
+  return {
+    question: result.question,
+    answers: result.options.map((option: string, index: number) => ({
+      answer: option,
+      isCorrect: index === result.correctIndex,
+    })),
+  };
 }

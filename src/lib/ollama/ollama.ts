@@ -29,7 +29,7 @@ const SYSTEM_PROMPT =
   "Return JSON with fields: 'options' (array of four choices including the correct answer) and " +
   "'correctIndex' (zero-based index of correct answer). Output only valid JSON.";
 
-async function generateQuizEntry(
+export async function generateQuizEntry(
   question: string,
   answer: string,
   maxRetries = 3,
