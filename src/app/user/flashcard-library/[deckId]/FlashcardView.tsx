@@ -252,7 +252,7 @@ export default function FlashcardView({ deck, isOwner }: { deck: DeckInput, isOw
         deck._id,
         deck.name,
         deck.description,
-        cardsForApi
+        cardsForApi, deck.published
       );
       
       const parsedResult = JSON.parse(result);
