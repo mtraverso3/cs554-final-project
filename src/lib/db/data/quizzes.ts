@@ -176,6 +176,7 @@ export async function updateQuiz(
   name: string,
   description: string,
   questions: QuizEntry[],
+  published: boolean,
 ): Promise<string> {
   try {
     const quiz: Quiz = await getQuizById(quizId);
@@ -199,6 +200,7 @@ export async function updateQuiz(
           name,
           description,
           questionsList,
+          published,
         },
       },
     );

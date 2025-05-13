@@ -152,7 +152,7 @@ export default function EditQuizForm({ quiz }: { quiz: QuizInput }) {
     }
 
     try {
-      const result = await updateQuiz(quiz._id, name, description, questions);
+      const result = await updateQuiz(quiz._id, name, description, questions, published);
 
       const parsedResult = JSON.parse(result);
 
