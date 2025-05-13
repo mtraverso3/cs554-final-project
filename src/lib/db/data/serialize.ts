@@ -147,6 +147,11 @@ export function serializeQuiz(quiz: Quiz): string {
     ownerId: quiz.ownerId.toString(),
     createdAt: quiz.createdAt.toISOString(),
     lastStudied: quiz.lastStudied.toISOString(),
+    comments: quiz.comments.map((c) => ({
+      createdAt: c.createdAt.toISOString(),
+      ownerId: c.ownerId.toString(),
+      text: c.text,
+    })),
     attempts: quiz.attempts.map((a) => ({
       userId: a.userId.toString(),
       score: a.score,
@@ -168,9 +173,16 @@ export function serializeQuiz2(quiz: Quiz) {
     name: quiz.name,
     description: quiz.description,
     category: quiz.category,
+    comments: quiz.comments.map((c) => ({
+      createdAt: c.createdAt.toISOString(),
+      ownerId: c.ownerId.toString(),
+      text: c.text,
+    })),
     createdAt: quiz.createdAt
       ? quiz.createdAt.toISOString()
       : new Date().toISOString(),
+    likes: quiz.likes.map((l) => l.toString()),
+
     lastStudied: quiz.lastStudied
       ? quiz.lastStudied.toISOString()
       : new Date().toISOString(),
@@ -192,6 +204,12 @@ export type serializedQuiz = {
   category: string;
   createdAt: string;
   lastStudied: string;
+  comments: Array<{
+    createdAt: string;
+    ownerId: string;
+    text: string;
+  }>;
+  likes: string[];
   questionsList: {
     question: string;
     answers: {

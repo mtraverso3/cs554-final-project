@@ -146,6 +146,11 @@ export const QuizInputSchema = Yup.object({
     .trim()
     .required("Category is required")
     .min(1, "Must be a non-empty string"),
+  comments: Yup.array()
+      .of(CommentSchema)
+      .default([])
+      .required("Comments are required"),
+
   published: Yup.boolean().default(false).required("Public is required"),
 });
 

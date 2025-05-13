@@ -11,13 +11,21 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { toggleQuizLike } from "@/lib/quizForms";
+import {toggleLike} from "@/lib/deckForms";
+import {ThumbsUp} from "lucide-react";
+import {useRouter} from "next/navigation";
+
 
 interface QuizCardProps {
   quiz: serializedQuiz;
+  currentUserId: string;
 }
 
-export default function QuizCard({ quiz }: QuizCardProps) {
-  return (
+export default function QuizCard({ quiz, currentUserId  }: QuizCardProps) {
+    const router = useRouter();
+
+    return (
     <Card className="h-full flex flex-col">
       <CardHeader className="pb-2">
         <CardTitle className="line-clamp-1">{quiz.name}</CardTitle>
@@ -30,6 +38,15 @@ export default function QuizCard({ quiz }: QuizCardProps) {
       <CardContent className="flex-1">
         <p className="line-clamp-2 text-muted-foreground">{quiz.description}</p>
       </CardContent>
+        <Button
+            onClick={async () => {
+                await toggleQuizLike(quiz._id);
+                router.refresh();
+            }}
+            variant={quiz.likes.includes(currentUserId) ? "default" : "ghost"}
+        >
+            <ThumbsUp /> {quiz.likes.length}
+        </Button>
 
       <CardFooter className="pt-2">
         <Button asChild size="sm">

@@ -2,7 +2,8 @@
 
 import { authenticateUser } from "@/lib/auth/auth";
 import * as decks from "@/lib/db/data/decks";
-import { getDeckById } from "@/lib/db/data/decks";
+import {getDeckById} from "@/lib/db/data/decks";
+import {addComment} from "@/lib/db/data/quizzes";
 import { Deck, Quiz, QuizEntry, User } from "@/lib/db/data/schema";
 import * as quizzes from "@/lib/db/data/quizzes";
 import { getQuizById } from "@/lib/db/data/quizzes";
@@ -67,6 +68,23 @@ export async function addQuiz(
     published,
     questionsList,
   );
+}
+export async function toggleQuizLike(quizId: string) {
+  const userObject: User = await authenticateUser();
+  const userId = userObject._id.toString();
+
+  await quizzes.toggleLike(quizId, userId);
+}
+
+export async function addQuizComment(
+    quizId: string,
+    text: string,
+): Promise<string> {
+  const userObject: User = await authenticateUser();
+
+  const comment = await addComment(quizId, userObject._id.toString(), text);
+
+  return JSON.stringify(comment);
 }
 
 export async function getQuizzes(): Promise<string> {
