@@ -13,7 +13,7 @@ export async function createFlashcard(front: string, back: string) {
   console.log(front, back);
 }
 
-export async function signup(first: string, last: string): Promise<User> {
+export async function signup(first: string, last: string, profilePicture: string): Promise<User> {
   const session = await auth0.getSession();
 
   const userObject = session?.user;
@@ -27,6 +27,7 @@ export async function signup(first: string, last: string): Promise<User> {
     userObject.sub,
     first,
     last,
+    profilePicture
   );
 
   console.log(
