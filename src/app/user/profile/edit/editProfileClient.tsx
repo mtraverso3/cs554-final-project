@@ -1,6 +1,5 @@
 "use client";
-import { useState } from "react";
-import { updateProfile } from "@/lib/userForms";
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { 
@@ -15,54 +14,17 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import { 
-  ArrowLeft, 
-  User, 
+  ArrowLeft,
   Upload, 
   Save, 
   X, 
   AlertCircle 
 } from "lucide-react";
-// Import custom alert styles
-const Alert = ({ children, variant, className, ...props }: { 
-  children: React.ReactNode, 
-  variant?: "default" | "destructive",
-  className?: string
-} & React.HTMLAttributes<HTMLDivElement>) => {
-  const baseStyles = "relative w-full rounded-lg border p-4 mb-4";
-  const variantStyles = variant === "destructive" 
-    ? "bg-red-50 border-red-200 text-red-800" 
-    : "bg-background text-foreground";
-  
-  return (
-    <div role="alert" className={`${baseStyles} ${variantStyles} ${className || ""}`} {...props}>
-      {children}
-    </div>
-  );
-};
-
-const AlertTitle = ({ children, className, ...props }: { 
-  children: React.ReactNode,
-  className?: string
-} & React.HTMLAttributes<HTMLHeadingElement>) => {
-  return (
-    <h5 className={`mb-1 font-medium leading-none tracking-tight ${className || ""}`} {...props}>
-      {children}
-    </h5>
-  );
-};
-
-const AlertDescription = ({ children, className, ...props }: { 
-  children: React.ReactNode,
-  className?: string
-} & React.HTMLAttributes<HTMLParagraphElement>) => {
-  return (
-    <div className={`text-sm ${className || ""}`} {...props}>
-      {children}
-    </div>
-  );
-};
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { updateProfile } from "@/lib/userForms";
+import DeleteAccountButton from "./DeleteAccountButton";
 
 export default function EditProfileClient({ data }: { data: string }) {
   const theData = JSON.parse(data);
@@ -88,7 +50,6 @@ export default function EditProfileClient({ data }: { data: string }) {
       await updateProfile(first, last, file);
       setSuccess(true);
       
-      // Navigate after short delay to show success message
       setTimeout(() => {
         router.push("/user/profile");
       }, 1500);
@@ -129,25 +90,17 @@ export default function EditProfileClient({ data }: { data: string }) {
       
       {error && (
         <Alert variant="destructive" className="mb-6">
-          <div className="flex items-start">
-            <AlertCircle className="h-4 w-4 mr-2 mt-0.5" />
-            <div>
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </div>
-          </div>
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
       
       {success && (
         <Alert className="mb-6 bg-green-50 border-green-200 text-green-800">
-          <div className="flex items-start">
-            <AlertCircle className="h-4 w-4 mr-2 mt-0.5 text-green-600" />
-            <div>
-              <AlertTitle>Success</AlertTitle>
-              <AlertDescription>Your profile has been updated successfully.</AlertDescription>
-            </div>
-          </div>
+          <AlertCircle className="h-4 w-4 text-green-600" />
+          <AlertTitle>Success</AlertTitle>
+          <AlertDescription>Your profile has been updated successfully.</AlertDescription>
         </Alert>
       )}
       
@@ -283,6 +236,7 @@ export default function EditProfileClient({ data }: { data: string }) {
           </CardFooter>
         </Card>
       </div>
+      <DeleteAccountButton />
     </main>
   );
 }

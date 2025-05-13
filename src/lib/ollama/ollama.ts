@@ -23,7 +23,20 @@ const modelResponseSchema = yup.object({
 export type ModelResp = yup.InferType<typeof modelResponseSchema>;
 
 const OLLAMA_MODEL_NAME = process.env.OLLAMA_MODEL_NAME || "qwen3:4b";
-await ollama.pull({ model: OLLAMA_MODEL_NAME });
+
+// Helper to detect build time (Next.js sets NEXT_PHASE during build)
+const isBuild = process.env.NEXT_PHASE === 'phase-production-build' || process.env.NEXT_PHASE === 'phase-export';
+
+// Only pull models if not building
+if (!isBuild) {
+  await ollama.pull({ model: OLLAMA_MODEL_NAME });
+}
+
+function ensureOllamaAvailable() {
+  if (isBuild) {
+    throw new Error('Ollama API calls are not available during build.');
+  }
+}
 
 const SYSTEM_PROMPT =
   "You are a quiz generator creating multiple choice questions from flashcards. " +
@@ -31,9 +44,14 @@ const SYSTEM_PROMPT =
   "'correctIndex' (zero-based index of correct answer). Output only valid JSON.";
 
 const OLLAMA_EMBED_MODEL = process.env.OLLAMA_EMBED_MODEL || "bge-large";
-await ollama.pull({ model: OLLAMA_EMBED_MODEL });
+
+// Only pull models if not building
+if (!isBuild) {
+  await ollama.pull({ model: OLLAMA_EMBED_MODEL });
+}
 
 export async function generateEmbedding(text: string): Promise<number[]> {
+  ensureOllamaAvailable();
   const response = await ollama.embeddings({
     model: OLLAMA_EMBED_MODEL,
     prompt: text,
@@ -49,6 +67,7 @@ export async function generateQuizEntry(
   answer: string,
   maxRetries = 3,
 ): Promise<{ question: string; options: string[]; correctIndex: number }> {
+  ensureOllamaAvailable();
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const response = await ollama.generate({
@@ -89,6 +108,7 @@ export async function generateQuizEntry(
 }
 
 export async function deckToQuiz(deck: Deck): Promise<QuizEntry[]> {
+  ensureOllamaAvailable();
   // extract questions and answers from flashcards
   const flashcards = deck.flashcardList.map((card) => ({
     question: card.front,

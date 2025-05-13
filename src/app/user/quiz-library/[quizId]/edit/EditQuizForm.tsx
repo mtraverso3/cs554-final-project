@@ -171,7 +171,6 @@ export default function EditQuizForm({ quiz }: { quiz: QuizInput }) {
   };
 
   const validateAllQuestions = () => {
-    const newErrors: {[key: number]: string[]} = {};
     let isValid = true;
 
     questions.forEach((question, index) => {
