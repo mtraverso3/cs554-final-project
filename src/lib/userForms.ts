@@ -1,9 +1,13 @@
 "use server";
 
 import { auth0, authenticateUser } from "@/lib/auth/auth";
-//import * as users from "@/lib/db/data/users";
 import { User } from "@/lib/db/data/schema";
 import * as userData from "@/lib/db/data/users";
+import { users } from "@/lib/db/config/mongoCollections";
+import { ObjectId } from "mongodb";
+import { quizzes } from "@/lib/db/config/mongoCollections";
+import { decks } from "@/lib/db/config/mongoCollections";
+import { redisClient } from "@/lib/db/config/redisConnection";
 
 export async function getUserData(): Promise<string> {
   const userObject: User = await authenticateUser();
@@ -55,3 +59,38 @@ export async function signup(
   );
   return JSON.stringify(user);
 }
+
+export async function deleteUserAccount(): Promise<{ success: boolean; message: string }> {
+  try {
+    const userObject: User = await authenticateUser();
+    const userId = userObject._id.toString();
+    const usersCollection = await users();
+    const quizzesCollection = await quizzes();
+    const decksCollection = await decks();
+    await quizzesCollection.deleteMany({ ownerId: new ObjectId(userId) });
+    await decksCollection.deleteMany({ ownerId: new ObjectId(userId) });
+    const deleteResult = await usersCollection.deleteOne({ _id: new ObjectId(userId) });
+    
+    if (deleteResult.deletedCount === 0) {
+      return { 
+        success: false, 
+        message: "Failed to delete user account. Please try again." 
+      };
+    }
+  
+    const client = await redisClient();
+    await client.del(`user:${userId}`);
+  
+    return { 
+      success: true, 
+      message: "Your account has been successfully deleted." 
+    };
+  } catch (error) {
+    console.error("Error deleting user account:", error);
+    return { 
+      success: false, 
+      message: error instanceof Error ? error.message : "An unexpected error occurred while deleting your account." 
+    };
+  }
+}
+
