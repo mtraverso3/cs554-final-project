@@ -24,6 +24,15 @@ export const FlashcardInputSchema = Yup.object({
     .required("Back text is required")
     .min(1, "Must be non-empty"),
 });
+export const CommentSchema = Yup.object({
+  ownerId: Yup.string().required("User is required"),
+  text: Yup.string()
+    .trim()
+    .required("Text is required")
+    .min(1, "Must be a non-empty string"),
+  createdAt: Yup.string().required("CreatedAt is required"),
+});
+export type Comment = Yup.InferType<typeof CommentSchema>;
 
 export type FlashcardInput = Yup.InferType<typeof FlashcardInputSchema>;
 export const DeckInputSchema = Yup.object({
@@ -53,6 +62,10 @@ export const DeckInputSchema = Yup.object({
     .min(2, "Category must be at least 2 characters")
     .max(50, "Category must be at most 50 characters")
     .matches(/^[A-Za-z]+$/, "Category must contain only letters"),
+  comments: Yup.array()
+    .of(CommentSchema)
+    .default([])
+    .required("Comments are required"),
 
   published: Yup.boolean().default(false).required("Public is required"),
 });

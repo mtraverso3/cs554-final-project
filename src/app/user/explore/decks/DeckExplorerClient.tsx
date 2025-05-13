@@ -1,11 +1,16 @@
-'use client';
+"use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import DeckCard from "@/app/user/explore/decks/DeckCard";
-import type { SerializedDeck } from '@/lib/db/data/serialize';
+import type { SerializedDeck } from "@/lib/db/data/serialize";
 
-
-export default function PublicDeckExplorerClient({ decks }: { decks: SerializedDeck[]; }) {
+export default function PublicDeckExplorerClient({
+  decks,
+  currentUserId,
+}: {
+  decks: SerializedDeck[];
+  currentUserId: string;
+}) {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [sortBy, setSortBy] = useState<"title" | "createdAt">("title");
@@ -74,7 +79,7 @@ export default function PublicDeckExplorerClient({ decks }: { decks: SerializedD
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtered.map((deck) => (
             <div key={deck._id}>
-              <DeckCard deck={deck} />
+              <DeckCard deck={deck} currentUserId={currentUserId} />
             </div>
           ))}
         </div>

@@ -1,11 +1,18 @@
 import { decks } from "../config/mongoCollections";
 import { Collection, ObjectId } from "mongodb";
 import { getUserById } from "./users";
-import { CommentSchema, Comment, Deck, DeckSchema, StudyProgress, Flashcard, StudyProgressSchema } from "./schema";
-import {StudyProgressData} from "@/lib/deckForms";
+import {
+  Comment,
+  CommentSchema,
+  Deck,
+  DeckSchema,
+  Flashcard,
+  StudyProgress,
+  StudyProgressSchema,
+} from "./schema";
+import { StudyProgressData } from "@/lib/deckForms";
 import { redisClient } from "@/lib/db/config/redisConnection";
-import { serializeDeck, deserializeDeck } from "@/lib/db/data/serialize";
-
+import { deserializeDeck, serializeDeck } from "@/lib/db/data/serialize";
 
 export async function createDeck(
   name: string,
@@ -13,10 +20,8 @@ export async function createDeck(
   category: string,
   published: boolean,
   userId: string,
-
 ): Promise<Deck> {
   await getUserById(userId);
-
 
   let newDeck: Deck = {
     _id: new ObjectId(),
@@ -30,7 +35,7 @@ export async function createDeck(
     studyProgress: {} as StudyProgress,
     likes: [],
     comments: [],
-    published: published
+    published: published,
   };
 
   newDeck = await DeckSchema.validate(newDeck);
@@ -42,43 +47,41 @@ export async function createDeck(
     }
     return newDeck;
   } finally {
-      const client = await redisClient();
-      await client.del(`decks:user:${userId}`);
+    const client = await redisClient();
+    await client.del(`decks:user:${userId}`);
   }
 }
 
-
 export async function updateDeck(
-    userId: string,
-    deckId: string,
-    name: string,
-    description: string,
-    flashcards: { front: string; back: string }[]
+  userId: string,
+  deckId: string,
+  name: string,
+  description: string,
+  flashcards: { front: string; back: string }[],
 ): Promise<string> {
   try {
-
     const deck: Deck = await getDeckById(deckId);
     if (!deck.ownerId.equals(new ObjectId(userId))) {
       throw new Error("Not authorized to update this deck");
     }
 
-    const flashcardList: Flashcard[] = flashcards.map(card => ({
+    const flashcardList: Flashcard[] = flashcards.map((card) => ({
       _id: new ObjectId(),
       deckId: new ObjectId(deckId),
       front: card.front,
-      back: card.back
+      back: card.back,
     }));
 
     const deckCollection = await decks();
     await deckCollection.updateOne(
-        { _id: new ObjectId(deckId) },
-        {
-          $set: {
-            name,
-            description,
-            flashcardList
-          }
-        }
+      { _id: new ObjectId(deckId) },
+      {
+        $set: {
+          name,
+          description,
+          flashcardList,
+        },
+      },
     );
 
     return JSON.stringify({ success: true });
@@ -86,7 +89,7 @@ export async function updateDeck(
     console.error("Error updating deck:", error);
     return JSON.stringify({
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error"
+      error: error instanceof Error ? error.message : "Unknown error",
     });
   } finally {
     const client = await redisClient();
@@ -95,7 +98,10 @@ export async function updateDeck(
   }
 }
 
-export async function deleteDeck(deckId: string, userId: string): Promise<string> {
+export async function deleteDeck(
+  deckId: string,
+  userId: string,
+): Promise<string> {
   try {
     const deck: Deck = await getDeckById(deckId);
     if (!deck.ownerId.equals(new ObjectId(userId))) {
@@ -103,7 +109,9 @@ export async function deleteDeck(deckId: string, userId: string): Promise<string
     }
 
     const deckCollection = await decks();
-    const deleteResult = await deckCollection.deleteOne({ _id: new ObjectId(deckId) });
+    const deleteResult = await deckCollection.deleteOne({
+      _id: new ObjectId(deckId),
+    });
 
     if (deleteResult.deletedCount === 0) {
       throw new Error("Deck could not be deleted");
@@ -114,7 +122,7 @@ export async function deleteDeck(deckId: string, userId: string): Promise<string
     console.error("Error deleting deck:", error);
     return JSON.stringify({
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error"
+      error: error instanceof Error ? error.message : "Unknown error",
     });
   } finally {
     const client = await redisClient();
@@ -124,10 +132,10 @@ export async function deleteDeck(deckId: string, userId: string): Promise<string
 }
 
 export async function saveStudyProgress(
-    deckId: string,
-    userId:string,
-    progress: StudyProgressData,
-    isComplete: boolean = false
+  deckId: string,
+  userId: string,
+  progress: StudyProgressData,
+  isComplete: boolean = false,
 ): Promise<string> {
   try {
     const deck: Deck = await getDeckById(deckId);
@@ -141,32 +149,32 @@ export async function saveStudyProgress(
 
     if (isComplete) {
       await deckCollection.updateOne(
-          { _id: new ObjectId(deckId) },
-          {
-            $set: {
-              lastStudied: new Date(),
-              studyProgress: {
-                currentCardIndex: 0,
-                knownCardIds: [],
-                unknownCardIds: [],
-                lastPosition: 0,
-                studyTime: 0,
-                isReviewMode: false,
-                isCompleted: false,
-                reviewingCardIds: []
-              }
-            }
-          }
+        { _id: new ObjectId(deckId) },
+        {
+          $set: {
+            lastStudied: new Date(),
+            studyProgress: {
+              currentCardIndex: 0,
+              knownCardIds: [],
+              unknownCardIds: [],
+              lastPosition: 0,
+              studyTime: 0,
+              isReviewMode: false,
+              isCompleted: false,
+              reviewingCardIds: [],
+            },
+          },
+        },
       );
     } else {
       await deckCollection.updateOne(
-          { _id: new ObjectId(deckId) },
-          {
-            $set: {
-              lastStudied: new Date(),
-              studyProgress: progress
-            }
-          }
+        { _id: new ObjectId(deckId) },
+        {
+          $set: {
+            lastStudied: new Date(),
+            studyProgress: progress,
+          },
+        },
       );
     }
 
@@ -175,11 +183,11 @@ export async function saveStudyProgress(
     console.error("Error saving study progress:", error);
     return JSON.stringify({
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error"
+      error: error instanceof Error ? error.message : "Unknown error",
     });
   } finally {
     const client = await redisClient();
-    await client.del( `deck:${deckId}`);
+    await client.del(`deck:${deckId}`);
     await client.del(`decks:user:${userId}`);
   }
 }
@@ -213,9 +221,7 @@ export async function getDeckById(id: string): Promise<Deck> {
   return deck;
 }
 
-export async function getDecksByUserId(
-  userId: string,
-): Promise<Deck[]> {
+export async function getDecksByUserId(userId: string): Promise<Deck[]> {
   if (!ObjectId.isValid(userId)) {
     throw new Error("Invalid ObjectId");
   }
@@ -225,7 +231,7 @@ export async function getDecksByUserId(
   const cached = await client.get(cacheKey);
   if (cached) {
     const serializedArray: string[] = JSON.parse(cached);
-    return serializedArray.map(s => deserializeDeck(s));
+    return serializedArray.map((s) => deserializeDeck(s));
   }
 
   const deckCollection = await decks();
@@ -246,31 +252,39 @@ export async function getDecksByUserId(
   return decksList;
 }
 
-
 export async function toggleLike(
   deckId: string,
   userId: string,
 ): Promise<Deck> {
-  if (!ObjectId.isValid(deckId) || !ObjectId.isValid(userId)) {
-    throw new Error("Invalid ObjectId");
+  try {
+    if (!ObjectId.isValid(deckId) || !ObjectId.isValid(userId)) {
+      throw new Error("Invalid ObjectId");
+    }
+
+    const deckCollection = await decks();
+    const deck: Deck = await getDeckById(deckId);
+
+    const userObjectId = new ObjectId(userId);
+    if (deck.likes.some((id) => new ObjectId(id).equals(userObjectId))) {
+      console.log("Removing like");
+      await deckCollection.updateOne(
+        { _id: new ObjectId(deckId) },
+        { $pull: { likes: userObjectId.toString() } },
+      );
+    } else {
+      console.log("Adding like");
+      await deckCollection.updateOne(
+        { _id: new ObjectId(deckId) },
+        { $addToSet: { likes: userObjectId.toString() } },
+      );
+    }
+
+    return getDeckById(deckId);
+  } finally {
+    const client = await redisClient();
+    await client.del(`deck:${deckId}`);
+    await client.del(`decks:user:${userId}`);
   }
-
-  const deckCollection = await decks();
-  const deck: Deck = await getDeckById(deckId);
-
-  if (deck.likes.includes(new ObjectId(userId))) {
-    await deckCollection.updateOne(
-      { _id: new ObjectId(deckId) },
-      { $pull: { likes: userId } },
-    );
-  } else {
-    await deckCollection.updateOne(
-      { _id: new ObjectId(deckId) },
-      { $addToSet: { likes: userId } },
-    );
-  }
-
-  return getDeckById(deckId);
 }
 
 export async function addComment(
@@ -278,31 +292,35 @@ export async function addComment(
   userId: string,
   text: string,
 ): Promise<Deck> {
-  if (!ObjectId.isValid(deckId) || !ObjectId.isValid(userId)) {
-    throw new Error("Invalid ObjectId");
+  try {
+    if (!ObjectId.isValid(deckId) || !ObjectId.isValid(userId)) {
+      throw new Error("Invalid ObjectId");
+    }
+
+    const deckCollection = await decks();
+
+    let newComment: Comment = {
+      ownerId: new ObjectId(userId),
+      text,
+      createdAt: new Date(),
+    };
+
+    newComment = await CommentSchema.validate(newComment);
+
+    await deckCollection.updateOne(
+      { _id: new ObjectId(deckId) },
+      { $push: { comments: newComment } },
+    );
+
+    return getDeckById(deckId);
+  } finally {
+    const client = await redisClient();
+    await client.del(`deck:${deckId}`);
+    await client.del(`decks:user:${userId}`);
   }
-
-  const deckCollection = await decks();
-
-  let newComment: Comment = {
-    ownerId: new ObjectId(userId),
-    text,
-    createdAt: new Date(),
-  };
-
-  newComment = await CommentSchema.validate(newComment);
-
-  await deckCollection.updateOne(
-    { _id: new ObjectId(deckId) },
-    { $push: { comments: newComment } },
-  );
-
-  return getDeckById(deckId);
 }
 
-export async function getLikedDecksByUser(
-  userId: string,
-): Promise<Deck[]> {
+export async function getLikedDecksByUser(userId: string): Promise<Deck[]> {
   if (!ObjectId.isValid(userId)) {
     throw new Error("Invalid ObjectId");
   }
@@ -322,15 +340,11 @@ export async function getLikedDecksByUser(
   return decksList;
 }
 
-
 export async function getPublicDecks(): Promise<Deck[]> {
   const deckCollection = await decks();
   let decksList;
   try {
-    decksList = await deckCollection
-      .find({ published: true })
-      .toArray();
-
+    decksList = await deckCollection.find({ published: true }).toArray();
   } catch {
     throw new Error("Failed to get public decks");
   }

@@ -17,12 +17,12 @@ export async function updateDeck(
   deckId: string,
   name: string,
   description: string,
-  flashcards: { front: string; back: string }[]
+  flashcards: { front: string; back: string }[],
 ): Promise<string> {
-    const userObject: User = await authenticateUser();
-    
-    const userId = userObject._id.toString();
-    return await decks.updateDeck(userId, deckId, name, description, flashcards);
+  const userObject: User = await authenticateUser();
+
+  const userId = userObject._id.toString();
+  return await decks.updateDeck(userId, deckId, name, description, flashcards);
 }
 
 export async function deleteDeck(deckId: string): Promise<string> {
@@ -47,17 +47,34 @@ export type StudyProgressData = {
 export async function saveStudyProgress(
   deckId: string,
   progress: StudyProgressData,
-  isComplete: boolean = false
+  isComplete: boolean = false,
 ): Promise<string> {
   const userObject: User = await authenticateUser();
   const userId = userObject._id.toString();
   return decks.saveStudyProgress(deckId, userId, progress, isComplete);
 }
 
+export async function toggleLike(deckId: string) {
+  const userObject: User = await authenticateUser();
+  const userId = userObject._id.toString();
+
+  await decks.toggleLike(deckId, userId);
+}
 export async function getPublicDecks(): Promise<Deck[]> {
   await authenticateUser();
 
   return decks.getPublicDecks();
+}
+
+export async function addDeckComment(
+  deckId: string,
+  text: string,
+): Promise<string> {
+  const userObject: User = await authenticateUser();
+
+  const comment = await addComment(deckId, userObject._id.toString(), text);
+
+  return JSON.stringify(comment);
 }
 
 export async function getDeck(id: string): Promise<Deck> {

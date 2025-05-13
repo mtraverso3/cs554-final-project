@@ -28,6 +28,11 @@ export async function getNewUser(sub: string): Promise<string> {
   return JSON.stringify(userObject);
 }
 
+export async function getUserById(id: string): Promise<string> {
+  const userObject = await userData.getUserById(id);
+  return JSON.stringify(userObject);
+}
+
 export async function signup(
   first: string,
   last: string,

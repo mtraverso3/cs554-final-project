@@ -54,7 +54,15 @@ export default async function ViewDeckPage({
     const userObject = await authenticateUser();
     const isOwner = userObject._id.toString() === deck.ownerId.toString();
 
-    return <FlashcardView deck={serializeDeck(deck)} isOwner={isOwner} />;
+    return (
+      <>
+        <FlashcardView deck={serializeDeck(deck)} isOwner={isOwner} />
+        <CommentSection
+          deck={serializeDeck(deck)}
+          currentUserId={userObject._id.toString()}
+        />
+      </>
+    );
   } catch (error) {
     if (error instanceof Error) {
       return (
