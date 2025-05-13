@@ -5,30 +5,31 @@ import { Deck } from "@/lib/db/data/schema";
 import FlashcardView from "./FlashcardView";
 import { getDeck } from "@/lib/deckForms";
 import CommentSection from "./CommentSection";
+import { Separator } from "@/components/ui/separator";
 
 function serializeDeck(deck: Deck) {
   return {
     _id: deck._id.toString(),
-      category: deck.category,
+    category: deck.category,
     comments: deck.comments.map((c) => ({
-    createdAt: c.createdAt.toISOString(),
-    ownerId: c.ownerId.toString(),
-    text: c.text,
-  })),
+      createdAt: c.createdAt.toISOString(),
+      ownerId: c.ownerId.toString(),
+      text: c.text,
+    })),
     createdAt: deck.createdAt.toISOString(),
     description: deck.description,
     flashcardList: deck.flashcardList.map((f) => ({
-    _id: f._id.toString(),
-    deckId: f.deckId.toString(),
-    front: f.front,
-    back: f.back,
-  })),
+      _id: f._id.toString(),
+      deckId: f.deckId.toString(),
+      front: f.front,
+      back: f.back,
+    })),
     lastStudied: deck.lastStudied.toISOString(),
     likes: deck.likes.map((l) => l.toString()),
     name: deck.name,
     ownerId: deck.ownerId.toString(),
     studyProgress: {
-    currentCardIndex: deck.studyProgress.currentCardIndex,
+      currentCardIndex: deck.studyProgress.currentCardIndex,
       isCompleted: deck.studyProgress.isCompleted,
       isReviewMode: deck.studyProgress.isReviewMode,
       knownCardIds: deck.studyProgress.knownCardIds,
@@ -36,12 +37,10 @@ function serializeDeck(deck: Deck) {
       reviewingCardIds: deck.studyProgress.reviewingCardIds,
       studyTime: deck.studyProgress.studyTime,
       unknownCardIds: deck.studyProgress.unknownCardIds,
-  },
+    },
     published: deck.published,
   };
 }
-
-
 
 export default async function ViewDeckPage({
   params,
@@ -54,15 +53,19 @@ export default async function ViewDeckPage({
 
     const userObject = await authenticateUser();
     const isOwner = userObject._id.toString() === deck.ownerId.toString();
+    const serializedDeck = serializeDeck(deck);
 
     return (
-      <>
-        <FlashcardView deck={serializeDeck(deck)} isOwner={isOwner} />
+      <div className="container mx-auto px-4 pb-12">
+        <FlashcardView deck={serializedDeck} isOwner={isOwner} />
+        
+        <Separator className="my-8" />
+        
         <CommentSection
-          deck={serializeDeck(deck)}
+          deck={serializedDeck}
           currentUserId={userObject._id.toString()}
         />
-      </>
+      </div>
     );
   } catch (error) {
     if (error instanceof Error) {
