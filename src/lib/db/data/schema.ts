@@ -190,6 +190,14 @@ export const QuizSchema = yup.object({
     .trim()
     .required("Category is required")
     .min(1, "Must be a non-empty string"),
+  likes: Yup.array()
+    .of(ObjectIdSchema.required())
+    .default([])
+    .required("Likes must be an array"),
+  comments: Yup.array()
+    .of(CommentSchema)
+    .default([])
+    .required("Comments must be an array"),
   published: Yup.boolean().default(false).required("Public is required"),
 });
 export type Quiz = InferType<typeof QuizSchema>;

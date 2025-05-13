@@ -1,4 +1,4 @@
-import { Deck, Quiz, QuizEntry, User } from "@/lib/db/data/schema";
+import { Deck, Quiz, QuizEntry, User, Comment } from "@/lib/db/data/schema";
 import { ObjectId } from "mongodb";
 
 export function serializeDeck(deck: Deck): string {
@@ -211,6 +211,12 @@ export function deserializeQuiz(cached: string): Quiz {
     published: boolean;
     createdAt: string;
     lastStudied: string;
+    comments: {
+      ownerId: string;
+      text: string;
+      createdAt: string;
+    }[]
+    likes: string[];
     attempts: {
       userId: string;
       score: number;
@@ -236,6 +242,12 @@ export function deserializeQuiz(cached: string): Quiz {
       score: a.score,
       date: new Date(a.date),
     })),
+    comments: raw.comments.map((c) => ({
+      ownerId: new ObjectId(c.ownerId),
+      text: c.text,
+      createdAt: new Date(c.createdAt),
+                                       })),
+    likes: raw.likes.map((l: string) => new ObjectId(l)),    
     questionsList: raw.questionsList.map((q) => ({
       question: q.question,
       answers: q.answers.map((a) => ({
