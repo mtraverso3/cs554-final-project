@@ -46,7 +46,7 @@ export default async function ViewQuizPage({
     
     const quiz: Quiz = await getQuiz(quizId);
       const userObject = await authenticateUser();
-      const isOwner = userObject._id.toString() === quiz.ownerId.toString();
+      //const isOwner = userObject._id.toString() === quiz.ownerId.toString();
       const serializedQuiz = serializeQuiz(quiz);
     return (
         <>

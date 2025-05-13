@@ -168,7 +168,6 @@ export default function UserHome() {
       setRecentQuizzes(parsedData);
     });
   }, []);
-
   // useEffect(() => {
   //
   //
@@ -216,7 +215,7 @@ export default function UserHome() {
     if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
     return date.toLocaleDateString();
   };
-
+  
   return (
     <div className="container mx-auto py-8 px-6">
       <div className="flex justify-between items-center mb-6">
@@ -463,13 +462,6 @@ export default function UserHome() {
                       href={`/user/quiz-library/${quiz._id.toString()}/edit`}
                     >
                       Edit
-                    </Link>
-                  </Button>
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link
-                      href={`/user/quiz-library/${quiz._id.toString()}/stats`}
-                    >
-                      Stats
                     </Link>
                   </Button>
                 </div>

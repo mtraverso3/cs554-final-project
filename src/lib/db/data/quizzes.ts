@@ -295,7 +295,6 @@ export async function addQuizAttempt(
     { $push: { attempts: finalAttempt } },
     { returnDocument: "after" },
   );
-
   if (!updatedQuiz) {
     throw new Error("Failed to add attempt");
   }
@@ -326,6 +325,8 @@ export async function getAttemptsByUser(
   quizId: string,
   userId?: string,
 ): Promise<Array<QuizAttempt>> {
+  console.log(quizId);
+  console.log(userId);
   if (!userId) {
     const theQuiz = await getQuizById(quizId);
     return theQuiz.attempts;
