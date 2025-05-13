@@ -35,14 +35,14 @@ export function withLoadingState<T extends object>(
 }
 
 export function DataFetchWrapper<T>({
-  fetchData,
-  renderContent,
+  fetchDataAction,
+  renderContentAction,
   loadingComponent = <CardSkeleton count={3} />,
   errorComponent = <div className="text-red-500 p-4">Failed to load data</div>,
   deps = [],
 }: {
-  fetchData: () => Promise<T>;
-  renderContent: (data: T) => React.ReactNode;
+  fetchDataAction: () => Promise<T>;
+  renderContentAction: (data: T) => React.ReactNode;
   loadingComponent?: React.ReactNode;
   errorComponent?: React.ReactNode;
   deps?: React.DependencyList;
@@ -50,12 +50,12 @@ export function DataFetchWrapper<T>({
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  
+
   useEffect(() => {
     const getData = async () => {
       setLoading(true);
       try {
-        const result = await fetchData();
+        const result = await fetchDataAction();
         setData(result);
         setError(null);
       } catch (err) {
@@ -72,7 +72,7 @@ export function DataFetchWrapper<T>({
   if (error) return errorComponent;
   if (!data) return errorComponent;
   
-  return renderContent(data);
+  return renderContentAction(data);
 }
 
 export function SuspenseWrapper({

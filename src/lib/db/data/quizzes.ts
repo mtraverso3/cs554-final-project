@@ -1,10 +1,11 @@
 import {
+  Comment, CommentSchema,
   Quiz,
   QuizAttempt,
   QuizAttemptSchema,
   QuizEntry,
   QuizEntrySchema,
-  QuizSchema,
+  QuizSchema
 } from "@/lib/db/data/schema";
 import { ObjectId } from "mongodb";
 import { quizzes } from "@/lib/db/config/mongoCollections";
@@ -37,6 +38,8 @@ export async function createQuiz(
       createdAt: new Date(),
       lastStudied: new Date(),
       attempts: [],
+      comments: [],
+      likes: [],
       category: category,
       published: published,
       questionsList: validatedQuestions,
@@ -136,7 +139,7 @@ export async function getQuizzesByUserId(userId: string): Promise<Quiz[]> {
     throw new Error("Failed to get quizzes");
   }
   if (!quizList) {
-    throw new Error("Decks not found");
+    throw new Error("Quizzes not found");
   }
   const serializedList = quizList.map(serializeQuiz);
   await client.set(cacheKey, JSON.stringify(serializedList), { EX: 3600 });
@@ -177,7 +180,7 @@ export async function updateQuiz(
 
     return JSON.stringify({ success: true });
   } catch (error) {
-    console.error("Error updating deck:", error);
+    console.error("Error updating quiz:", error);
     return JSON.stringify({
       success: false,
       error: error instanceof Error ? error.message : "Unknown error",
@@ -390,16 +393,85 @@ export async function getMostRecentAttempt(
   return mostRecent(attempts);
 }
 
+export async function toggleLike(
+  quizId: string,
+  userId: string,
+): Promise<Quiz> {
+  try {
+    if (!ObjectId.isValid(quizId) || !ObjectId.isValid(userId)) {
+      throw new Error("Invalid ObjectId");
+    }
+
+    const quizCollection = await quizzes();
+    const quiz: Quiz = await getQuizById(quizId);
+
+    const userObjectId = new ObjectId(userId);
+    if (quiz.likes.some((id) => new ObjectId(id).equals(userObjectId))) {
+      console.log("Removing like");
+      await quizCollection.updateOne(
+        { _id: new ObjectId(quizId) },
+        { $pull: { likes: userObjectId.toString() } },
+      );
+    } else {
+      console.log("Adding like");
+      await quizCollection.updateOne(
+        { _id: new ObjectId(quizId) },
+        { $addToSet: { likes: userObjectId.toString() } },
+      );
+    }
+
+    return getQuizById(quizId);
+  } finally {
+    const client = await redisClient();
+    await client.del(`quiz:${quizId}`);
+    await client.del(`quizzes:user:${userId}`);
+  }
+}
+
+export async function addComment(
+  quizId: string,
+  userId: string,
+  text: string,
+): Promise<Quiz> {
+  try {
+    if (!ObjectId.isValid(quizId) || !ObjectId.isValid(userId)) {
+      throw new Error("Invalid ObjectId");
+    }
+
+    const quizCollection = await quizzes();
+
+    let newComment: Comment = {
+      ownerId: new ObjectId(userId),
+      text,
+      createdAt: new Date(),
+    };
+
+    newComment = await CommentSchema.validate(newComment);
+
+    await quizCollection.updateOne(
+      { _id: new ObjectId(quizId) },
+      { $push: { comments: newComment } },
+    );
+
+    return getQuizById(quizId);
+  } finally {
+    const client = await redisClient();
+    await client.del(`quiz:${quizId}`);
+    await client.del(`quizzes:user:${userId}`);
+  }
+}
+
+
 export async function getPublicQuizzes(): Promise<Quiz[]> {
   const quizCollection = await quizzes();
   let quizList;
   try {
     quizList = await quizCollection.find({ published: true }).toArray();
   } catch {
-    throw new Error("Failed to get public decks");
+    throw new Error("Failed to get public quizzes");
   }
   if (!quizList) {
-    throw new Error("Public decks not found");
+    throw new Error("Public quizzes not found");
   }
   return quizList;
 }
