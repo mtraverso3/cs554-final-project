@@ -14,7 +14,7 @@ export default async function UserProfile() {
       <Card className="flex items-center space-x-6">
         <Avatar className="h-24 w-24">
           <AvatarImage // We can add image here later if we want
-            src={data.image || "/noimage.jpeg"}
+            src={data.profilePicture["file"]}
             alt={`${data.firstName} ${data.lastName}`}
           />
           <AvatarFallback>

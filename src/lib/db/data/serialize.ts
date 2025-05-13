@@ -264,5 +264,6 @@ export function deserializeUser(serialized: string): User {
     sub: data.sub,
     firstName: data.firstName,
     lastName: data.lastName,
+    profilePicture: data.profilePicture
   };
 }
