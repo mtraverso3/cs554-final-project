@@ -33,7 +33,16 @@ export default function CreateQuiz() {
   let initialQuestions: QuizInputEntry[] = [];
   try {
     if (questionsParam) {
-      initialQuestions = JSON.parse(questionsParam);
+      const parsed = JSON.parse(questionsParam);
+      initialQuestions = Array.isArray(parsed)
+        ? parsed.filter(
+            (q) =>
+              q &&
+              typeof q === "object" &&
+              typeof q.question === "string" &&
+              Array.isArray(q.answers)
+          )
+        : [];
     }
   } catch {}
 
@@ -230,94 +239,96 @@ export default function CreateQuiz() {
         <div>
           <h2 className="text-xl font-semibold mb-4">Questions</h2>
           <div className="space-y-6">
-            {questions.map((question, qIndex) => (
-              <Card key={qIndex}>
-                <CardContent className="pt-6 relative">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="absolute top-2 right-2 text-gray-500 hover:text-red-500"
-                    onClick={() => removeQuestion(qIndex)}
-                  >
-                    <Trash2 size={16} />
-                  </Button>
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Question {qIndex + 1}*
-                    </label>
-                    <Input
-                      value={question.question}
-                      onChange={(e) => handleQuestionChange(qIndex, e.target.value)}
-                      placeholder="Enter your question"
-                    />
-                  </div>
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Answer Options*
-                    </label>
-                    <div className="space-y-3">
-                      {question.answers.map((answer, aIndex) => (
-                        <div key={aIndex} className="flex items-start gap-2">
-                          <div className="flex-1">
-                            <Input
-                              value={answer.answer}
-                              onChange={(e) => handleAnswerChange(qIndex, aIndex, e.target.value)}
-                              placeholder={`Answer option ${aIndex + 1}`}
-                            />
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Button
-                              type="button"
-                              variant={answer.isCorrect ? "default" : "outline"}
-                              size="sm"
-                              className={`min-w-[100px] ${answer.isCorrect ? "bg-green-600 hover:bg-green-700" : ""}`}
-                              onClick={() => toggleCorrectAnswer(qIndex, aIndex)}
-                            >
-                              {answer.isCorrect ? (
-                                <>
-                                  <Check className="mr-1" size={16} />
-                                  Correct
-                                </>
-                              ) : (
-                                "Mark Correct"
-                              )}
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="text-gray-500 hover:text-red-500"
-                              onClick={() => removeAnswerOption(qIndex, aIndex)}
-                              disabled={question.answers.length <= 2}
-                            >
-                              <X size={16} />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center mt-4">
-                    <div className="text-sm text-gray-500">
-                      {question.answers.filter((a) => a.isCorrect).length > 1 && (
-                        <span className="text-blue-500">
-                          Multiple correct answers allowed
-                        </span>
-                      )}
-                    </div>
+            {questions.map((question, qIndex) =>
+              question && typeof question === "object" ? (
+                <Card key={qIndex}>
+                  <CardContent className="pt-6 relative">
                     <Button
-                      type="button"
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
-                      onClick={() => addAnswerOption(qIndex)}
+                      className="absolute top-2 right-2 text-gray-500 hover:text-red-500"
+                      onClick={() => removeQuestion(qIndex)}
                     >
-                      <Plus className="mr-1" size={16} />
-                      Add Answer
+                      <Trash2 size={16} />
                     </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Question {qIndex + 1}*
+                      </label>
+                      <Input
+                        value={question.question}
+                        onChange={(e) => handleQuestionChange(qIndex, e.target.value)}
+                        placeholder="Enter your question"
+                      />
+                    </div>
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Answer Options*
+                      </label>
+                      <div className="space-y-3">
+                        {question.answers.map((answer, aIndex) => (
+                          <div key={aIndex} className="flex items-start gap-2">
+                            <div className="flex-1">
+                              <Input
+                                value={answer.answer}
+                                onChange={(e) => handleAnswerChange(qIndex, aIndex, e.target.value)}
+                                placeholder={`Answer option ${aIndex + 1}`}
+                              />
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Button
+                                type="button"
+                                variant={answer.isCorrect ? "default" : "outline"}
+                                size="sm"
+                                className={`min-w-[100px] ${answer.isCorrect ? "bg-green-600 hover:bg-green-700" : ""}`}
+                                onClick={() => toggleCorrectAnswer(qIndex, aIndex)}
+                              >
+                                {answer.isCorrect ? (
+                                  <>
+                                    <Check className="mr-1" size={16} />
+                                    Correct
+                                  </>
+                                ) : (
+                                  "Mark Correct"
+                                )}
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="text-gray-500 hover:text-red-500"
+                                onClick={() => removeAnswerOption(qIndex, aIndex)}
+                                disabled={question.answers.length <= 2}
+                              >
+                                <X size={16} />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center mt-4">
+                      <div className="text-sm text-gray-500">
+                        {question.answers.filter((a) => a.isCorrect).length > 1 && (
+                          <span className="text-blue-500">
+                            Multiple correct answers allowed
+                          </span>
+                        )}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => addAnswerOption(qIndex)}
+                      >
+                        <Plus className="mr-1" size={16} />
+                        Add Answer
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : null
+            )}
             <Button
               variant="outline"
               className="w-full py-6 border-dashed"
