@@ -13,6 +13,8 @@ import {
 import { StudyProgressData } from "@/lib/deckForms";
 import { redisClient } from "@/lib/db/config/redisConnection";
 import { deserializeDeck, serializeDeck } from "@/lib/db/data/serialize";
+import { generateEmbedding } from "@/lib/ollama/ollama";
+import { upsertEmbedding } from "@/lib/db/data/embeddings";
 
 export async function createDeck(
   name: string,
@@ -45,6 +47,25 @@ export async function createDeck(
     if (!insertInfo.acknowledged || !insertInfo.insertedId) {
       throw new Error("Error inserting new deck");
     }
+    // Async embedding generation (do not await)
+    (async () => {
+      try {
+        const content = [
+          newDeck.name,
+          newDeck.description,
+          ...newDeck.flashcardList.map((f) => `${f.front} ${f.back}`),
+        ].join("\n");
+        const vector = await generateEmbedding(content);
+        await upsertEmbedding({
+          refId: newDeck._id,
+          refType: "deck",
+          vector,
+          content,
+        });
+      } catch (e) {
+        console.error("Embedding generation failed for deck", newDeck._id, e);
+      }
+    })();
     return newDeck;
   } finally {
     const client = await redisClient();
@@ -83,7 +104,25 @@ export async function updateDeck(
         },
       },
     );
-
+    // also async embedding update (do not await)
+    (async () => {
+      try {
+        const content = [
+          name,
+          description,
+          ...flashcards.map((f) => `${f.front} ${f.back}`),
+        ].join("\n");
+        const vector = await generateEmbedding(content);
+        await upsertEmbedding({
+          refId: new ObjectId(deckId),
+          refType: "deck",
+          vector,
+          content,
+        });
+      } catch (e) {
+        console.error("Embedding update failed for deck", deckId, e);
+      }
+    })();
     return JSON.stringify({ success: true });
   } catch (error) {
     console.error("Error updating deck:", error);
@@ -191,6 +230,7 @@ export async function saveStudyProgress(
     await client.del(`decks:user:${userId}`);
   }
 }
+
 export async function getDeckById(id: string): Promise<Deck> {
   if (!ObjectId.isValid(id)) {
     throw new Error("Invalid ObjectId");

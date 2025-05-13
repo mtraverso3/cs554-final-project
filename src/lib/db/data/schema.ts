@@ -201,3 +201,19 @@ export const QuizSchema = yup.object({
   published: Yup.boolean().default(false).required("Public is required"),
 });
 export type Quiz = InferType<typeof QuizSchema>;
+
+export const EmbeddingSchema = yup.object({
+  _id: ObjectIdSchema.required(),
+  refId: ObjectIdSchema.required(), // references deck or quiz
+  refType: yup.string().oneOf(["deck", "quiz"]).required("refType is required"),
+  vector: yup
+    .array()
+    .of(yup.number().required())
+    .required("Vector is required"),
+  content: yup.string().required("Content is required"),
+  updatedAt: yup
+    .date()
+    .required("updatedAt is required")
+    .default(() => new Date()),
+});
+export type Embedding = InferType<typeof EmbeddingSchema>;
