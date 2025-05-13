@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { addDeckComment } from "@/lib/deckForms";
 import { Comment, DeckInput } from "@/lib/db/data/safeSchema";
+import { MessageCircle, Send, User, Clock } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 
 export default function CommentSection({
   deck,
@@ -67,35 +69,89 @@ export default function CommentSection({
       }
     };
     fetchUserNames();
-  }, [comments]);
+  }, [comments, userNames]);
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    }) + ' at ' + date.toLocaleTimeString(undefined, {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
   return (
-    <div className="flex flex-col gap-4">
-      <h2 className="text-lg font-semibold">Comments</h2>
-      <div className="flex flex-col gap-2">
-        {comments.map((comment: Comment, index: number) => (
-          <div key={index} className="p-3 border rounded-md bg-gray-50">
-            <p className="font-semibold">
-              {userNames[comment.ownerId] || "Unknown User"} &bull;{" "}
-              <span className="text-xs">
-                {new Date(comment.createdAt).toLocaleString()}
-              </span>
-            </p>
-            <p>{comment.text}</p>
-          </div>
-        ))}
+    <div className="px-6 py-8 bg-gray-50 rounded-xl shadow-sm mt-8">
+      <h2 className="text-xl font-semibold mb-4 flex items-center">
+        <MessageCircle className="mr-2" size={20} />
+        Comments ({comments.length})
+      </h2>
+      
+      <Separator className="mb-6" />
+      
+      <div className="flex items-center space-x-2 mb-6">
+        <Input
+          value={newComment}
+          onChange={(e) => setNewComment(e.target.value)}
+          placeholder="Add a comment..."
+          disabled={isSubmitting}
+          className="flex-1"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              handleAddComment();
+            }
+          }}
+        />
+        <Button 
+          onClick={handleAddComment} 
+          disabled={isSubmitting || !newComment.trim()}
+          size="sm"
+        >
+          <Send size={16} className="mr-2" />
+          {isSubmitting ? "Posting..." : "Post"}
+        </Button>
       </div>
-      <Input
-        value={newComment}
-        onChange={(e) => setNewComment(e.target.value)}
-        placeholder="Add a comment..."
-        disabled={isSubmitting}
-      />
-      <Button onClick={handleAddComment} disabled={isSubmitting}>
-        Add Comment
-      </Button>
+      
+      {error && (
+        <div className="p-3 mb-4 text-sm text-red-800 bg-red-100 rounded-md">
+          {error}
+        </div>
+      )}
 
-      {error && <p className="text-red-500">{error}</p>}
+      <div className="space-y-4">
+        {comments.length === 0 ? (
+          <div className="text-center p-6 text-gray-500">
+            No comments yet. Be the first to leave a comment!
+          </div>
+        ) : (
+          comments.map((comment: Comment, index: number) => (
+            <div 
+              key={index} 
+              className="p-4 border rounded-md bg-white hover:shadow-sm transition-shadow"
+            >
+              <div className="flex items-center mb-2">
+                <div className="h-8 w-8 bg-primary/10 rounded-full flex items-center justify-center text-primary mr-2">
+                  <User size={16} />
+                </div>
+                <div>
+                  <div className="font-medium">
+                    {userNames[comment.ownerId] || "Loading user..."}
+                  </div>
+                  <div className="text-xs text-gray-500 flex items-center">
+                    <Clock size={12} className="mr-1" />
+                    {formatDate(comment.createdAt)}
+                  </div>
+                </div>
+              </div>
+              <p className="pl-10 text-gray-700 whitespace-pre-line">{comment.text}</p>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 }
