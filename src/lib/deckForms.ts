@@ -3,7 +3,7 @@
 import { authenticateUser } from "@/lib/auth/auth";
 import * as decks from "@/lib/db/data/decks";
 import { Deck, User } from "@/lib/db/data/schema";
-import { getDeckById } from "@/lib/db/data/decks";
+import { addComment, getDeckById } from "@/lib/db/data/decks";
 
 export async function getDecks(): Promise<string> {
   const userObject: User = await authenticateUser();

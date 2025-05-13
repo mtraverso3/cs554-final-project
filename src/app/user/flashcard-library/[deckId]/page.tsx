@@ -4,6 +4,7 @@ import { authenticateUser } from "@/lib/auth/auth";
 import { Deck } from "@/lib/db/data/schema";
 import FlashcardView from "./FlashcardView";
 import { getDeck } from "@/lib/deckForms";
+import CommentSection from "./CommentSection";
 
 function serializeDeck(deck: Deck) {
   return {
