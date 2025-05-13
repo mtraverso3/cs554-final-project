@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Check, HelpCircle, Plus, Trash2, X } from "lucide-react";
+import { AlertCircle, ArrowLeft, Check, HelpCircle, Plus, Trash2, X } from "lucide-react";
 import { updateQuiz } from "@/lib/quizForms";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -16,35 +16,14 @@ import {
 } from "@/lib/db/data/safeSchema";
 import * as Yup from "yup";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch"; // safe for front end
-
-// type QuizAnswer = {
-//   answer: string;
-//   isCorrect: boolean;
-// };
-//
-// type QuizQuestion = {
-//   question: string;
-//   answers: QuizAnswer[];
-// };
-//
-// type QuizDTO = {
-//   _id: string;
-//   ownerId: string;
-//   name: string;
-//   description: string;
-//   category: string;
-//   createdAt: string;
-//   lastStudied: string;
-//   questionsList: QuizQuestion[];
-// };
+import { Switch } from "@/components/ui/switch";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function EditQuizForm({ quiz }: { quiz: QuizInput }) {
   const router = useRouter();
   const [name, setName] = useState(quiz.name);
   const [description, setDescription] = useState(quiz.description);
   const [published, setPublished] = useState(quiz.published);
-
   const [category, setCategory] = useState(quiz.category);
   const [questions, setQuestions] = useState<QuizInputEntry[]>(
     quiz.questionsList.length > 0
@@ -69,7 +48,12 @@ export default function EditQuizForm({ quiz }: { quiz: QuizInput }) {
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string[] | null>(null);
+  const [questionErrors, setQuestionErrors] = useState<{[key: number]: string[]}>({});
   const [showHelp, setShowHelp] = useState(false);
+
+  useEffect(() => {
+    validateAllQuestions();
+  }, []);
 
   const addQuestion = () => {
     setQuestions((prev) => [
@@ -102,16 +86,35 @@ export default function EditQuizForm({ quiz }: { quiz: QuizInput }) {
     }
     updatedQuestions[questionIndex].answers.splice(answerIndex, 1);
     setQuestions(updatedQuestions);
+    validateQuestion(questionIndex, updatedQuestions[questionIndex]);
   };
 
   const removeQuestion = (index: number) => {
     setQuestions((prev) => prev.filter((_, i) => i !== index));
+    setQuestionErrors(prev => {
+      const newErrors = {...prev};
+      delete newErrors[index];
+      
+      const updatedErrors: {[key: number]: string[]} = {};
+      Object.entries(newErrors).forEach(([key, value]) => {
+        const numKey = parseInt(key);
+        if (numKey > index) {
+          updatedErrors[numKey - 1] = value;
+        } else {
+          updatedErrors[numKey] = value;
+        }
+      });
+      
+      return updatedErrors;
+    });
   };
 
   const handleQuestionChange = (index: number, value: string) => {
     const updatedQuestions = [...questions];
     updatedQuestions[index].question = value;
     setQuestions(updatedQuestions);
+    
+    validateQuestion(index, updatedQuestions[index]);
   };
 
   const handleAnswerChange = (
@@ -122,6 +125,8 @@ export default function EditQuizForm({ quiz }: { quiz: QuizInput }) {
     const updatedQuestions = [...questions];
     updatedQuestions[questionIndex].answers[answerIndex].answer = value;
     setQuestions(updatedQuestions);
+    
+    validateQuestion(questionIndex, updatedQuestions[questionIndex]);
   };
 
   const toggleCorrectAnswer = (questionIndex: number, answerIndex: number) => {
@@ -129,44 +134,98 @@ export default function EditQuizForm({ quiz }: { quiz: QuizInput }) {
     updatedQuestions[questionIndex].answers[answerIndex].isCorrect =
       !updatedQuestions[questionIndex].answers[answerIndex].isCorrect;
     setQuestions(updatedQuestions);
+    
+    validateQuestion(questionIndex, updatedQuestions[questionIndex]);
+  };
+  
+  const validateQuestion = (index: number, question: QuizInputEntry) => {
+    try {
+      const hasCorrectAnswer = question.answers.some(a => a.isCorrect);
+      const hasQuestion = question.question.trim() !== '';
+      const allAnswersHaveContent = question.answers.every(a => a.answer.trim() !== '');
+      const errors: string[] = [];
+      
+      if (!hasCorrectAnswer) {
+        errors.push("Must have at least one correct answer");
+      }
+      
+      if (!hasQuestion) {
+        errors.push("Question is required");
+      }
+      
+      if (!allAnswersHaveContent) {
+        errors.push("All answer options must have content");
+      }
+      
+      setQuestionErrors(prev => ({
+        ...prev,
+        [index]: errors
+      }));
+      
+      return errors.length === 0;
+    } catch (error) {
+      console.error("Validation error:", error);
+      return false;
+    }
+  };
+
+  const validateAllQuestions = () => {
+    const newErrors: {[key: number]: string[]} = {};
+    let isValid = true;
+    
+    questions.forEach((question, index) => {
+      const valid = validateQuestion(index, question);
+      if (!valid) {
+        isValid = false;
+      }
+    });
+    
+    return isValid;
   };
 
   const handleSave = async () => {
-    setSaving(true);
+    setError(null);
+
     const formData = {
       _id: quiz._id.toString(),
       name,
       description,
-      category: quiz.category, // assuming category is not editable
+      category,
       questionsList: questions,
+      published
     };
+
     try {
       await QuizInputSchema.validate(formData, { abortEarly: false });
-      setError(null);
     } catch (validationError) {
       if (validationError instanceof Yup.ValidationError) {
         setError(validationError.errors);
-        setSaving(false);
         return;
       }
     }
 
+    const questionsValid = validateAllQuestions();
+    if (!questionsValid) {
+      setError(["Please fix all question errors before submitting"]);
+      return;
+    }
+
+    setSaving(true);
+
     try {
       const result = await updateQuiz(quiz._id, name, description, questions);
-
       const parsedResult = JSON.parse(result);
 
       if (parsedResult.success) {
         router.push(`/user/quiz-library/${quiz._id}`);
       } else {
-        setError(parsedResult.error || "Failed to save changes");
+        setError(parsedResult.error || ["Failed to save changes"]);
       }
     } catch (error) {
       console.error("Error saving quiz:", error);
       setError(["An unexpected error occurred"]);
     } finally {
       setSaving(false);
-      setError(null);
     }
   };
 
@@ -225,7 +284,7 @@ export default function EditQuizForm({ quiz }: { quiz: QuizInput }) {
 
       {error && (
         <div
-          className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded space-y-1"
+          className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded space-y-1 mb-6"
           role="alert"
         >
           {Array.isArray(error) ? (
@@ -241,7 +300,6 @@ export default function EditQuizForm({ quiz }: { quiz: QuizInput }) {
       )}
 
       <div className="space-y-6">
-        {/* Quiz Details */}
         <Card>
           <CardContent className="pt-6">
             <h2 className="text-xl font-semibold mb-4">Quiz Details</h2>
@@ -280,7 +338,7 @@ export default function EditQuizForm({ quiz }: { quiz: QuizInput }) {
                   placeholder="Enter quiz category (e.g., Math, Science, History)"
                 />
               </div>
-              {/* Published (switch true/false)*/}
+              
               <div className="space-y-2">
                 <Label>Public</Label>
                 <Switch
@@ -294,7 +352,7 @@ export default function EditQuizForm({ quiz }: { quiz: QuizInput }) {
           </CardContent>
         </Card>
 
-        {/* Questions */}
+        {/* questions */}
         <div>
           <h2 className="text-xl font-semibold mb-4">Questions</h2>
 
@@ -310,6 +368,19 @@ export default function EditQuizForm({ quiz }: { quiz: QuizInput }) {
                   >
                     <Trash2 size={16} />
                   </Button>
+                  
+                  {questionErrors[qIndex] && questionErrors[qIndex].length > 0 && (
+                    <Alert variant="destructive" className="mb-4">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        <ul className="list-disc list-inside text-sm">
+                          {questionErrors[qIndex].map((err, idx) => (
+                            <li key={idx}>{err}</li>
+                          ))}
+                        </ul>
+                      </AlertDescription>
+                    </Alert>
+                  )}
 
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -417,7 +488,7 @@ export default function EditQuizForm({ quiz }: { quiz: QuizInput }) {
           </div>
         </div>
 
-        {/* Action Buttons */}
+        {/* action buttons */}
         <div className="flex justify-between pt-4">
           <Button variant="outline" asChild>
             <Link href={`/user/quiz-library/${quiz._id}`}>Cancel</Link>

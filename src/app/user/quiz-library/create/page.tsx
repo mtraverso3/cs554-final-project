@@ -10,7 +10,8 @@ import * as Yup from "yup";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2, Check, X } from "lucide-react";
+import { AlertCircle, Plus, Trash2, Check, X } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface QuizForm {
   name: string;
@@ -22,8 +23,6 @@ interface QuizForm {
 export default function CreateQuiz() {
   const router = useRouter();
   const searchParams = useSearchParams();
-
-  // Read query params for deck-to-quiz stuff
   const fromDeck = searchParams.get('fromDeck');
   const initialName = searchParams.get('name') || '';
   const initialDescription = searchParams.get('description') || '';
@@ -46,6 +45,7 @@ export default function CreateQuiz() {
   const [questions, setQuestions] = useState<QuizInputEntry[]>(fromDeck && initialQuestions.length > 0 ? initialQuestions : []);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string[] | null>(null);
+  const [questionErrors, setQuestionErrors] = useState<{[key: number]: string[]}>({});
 
   const handleInputChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -53,6 +53,7 @@ export default function CreateQuiz() {
     const { name, value } = e.target;
     setQuizInfo((prev) => ({ ...prev, [name]: value }));
   };
+  
   const handleSwitchChange = (checked: boolean) => {
     setQuizInfo((prev) => ({ ...prev, published: checked }));
   };
@@ -88,16 +89,36 @@ export default function CreateQuiz() {
     }
     updatedQuestions[questionIndex].answers.splice(answerIndex, 1);
     setQuestions(updatedQuestions);
+    
+    validateQuestion(questionIndex, updatedQuestions[questionIndex]);
   };
 
   const removeQuestion = (index: number) => {
     setQuestions((prev) => prev.filter((_, i) => i !== index));
+    setQuestionErrors(prev => {
+      const newErrors = {...prev};
+      delete newErrors[index];
+      
+      const updatedErrors: {[key: number]: string[]} = {};
+      Object.entries(newErrors).forEach(([key, value]) => {
+        const numKey = parseInt(key);
+        if (numKey > index) {
+          updatedErrors[numKey - 1] = value;
+        } else {
+          updatedErrors[numKey] = value;
+        }
+      });
+      
+      return updatedErrors;
+    });
   };
 
   const handleQuestionChange = (index: number, value: string) => {
     const updatedQuestions = [...questions];
     updatedQuestions[index].question = value;
     setQuestions(updatedQuestions);
+    
+    validateQuestion(index, updatedQuestions[index]);
   };
 
   const handleAnswerChange = (
@@ -108,6 +129,7 @@ export default function CreateQuiz() {
     const updatedQuestions = [...questions];
     updatedQuestions[questionIndex].answers[answerIndex].answer = value;
     setQuestions(updatedQuestions);
+    validateQuestion(questionIndex, updatedQuestions[questionIndex]);
   };
 
   const toggleCorrectAnswer = (questionIndex: number, answerIndex: number) => {
@@ -115,21 +137,75 @@ export default function CreateQuiz() {
     updatedQuestions[questionIndex].answers[answerIndex].isCorrect =
       !updatedQuestions[questionIndex].answers[answerIndex].isCorrect;
     setQuestions(updatedQuestions);
+    validateQuestion(questionIndex, updatedQuestions[questionIndex]);
+  };
+  
+  const validateQuestion = (index: number, question: QuizInputEntry) => {
+    try {
+      const hasCorrectAnswer = question.answers.some(a => a.isCorrect);
+      const hasQuestion = question.question.trim() !== '';
+      const allAnswersHaveContent = question.answers.every(a => a.answer.trim() !== '');
+      const errors: string[] = [];
+      
+      if (!hasCorrectAnswer) {
+        errors.push("Must have at least one correct answer");
+      }
+      
+      if (!hasQuestion) {
+        errors.push("Question is required");
+      }
+      
+      if (!allAnswersHaveContent) {
+        errors.push("All answer options must have content");
+      }
+      
+      setQuestionErrors(prev => ({
+        ...prev,
+        [index]: errors
+      }));
+      
+      return errors.length === 0;
+    } catch (error) {
+      console.error("Validation error:", error);
+      return false;
+    }
+  };
+
+  const validateAllQuestions = () => {
+    const newErrors: {[key: number]: string[]} = {};
+    let isValid = true;
+    
+    questions.forEach((question, index) => {
+      const valid = validateQuestion(index, question);
+      if (!valid) {
+        isValid = false;
+      }
+    });
+    
+    return isValid;
   };
 
   const finishQuiz = async () => {
     setError(null);
+    
     try {
       await QuizCreateSchema.validate(quizInfo, { abortEarly: false });
-      if (questions.length === 0) {
-        setError(["Quiz must have at least one question"]);
-        return;
-      }
     } catch (validationError) {
       if (validationError instanceof Yup.ValidationError) {
-        setError(validationError.errors); // Or join all errors
+        setError(validationError.errors);
         return;
       }
+    }
+    
+    if (questions.length === 0) {
+      setError(["Quiz must have at least one question"]);
+      return;
+    }
+    
+    const questionsValid = validateAllQuestions();
+    if (!questionsValid) {
+      setError(["Please fix all question errors before submitting"]);
+      return;
     }
 
     setIsSubmitting(true);
@@ -159,7 +235,7 @@ export default function CreateQuiz() {
 
       {error && (
         <div
-          className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded space-y-1"
+          className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded space-y-1 mb-6"
           role="alert"
         >
           {Array.isArray(error) ? (
@@ -241,6 +317,18 @@ export default function CreateQuiz() {
                   >
                     <Trash2 size={16} />
                   </Button>
+                  {questionErrors[qIndex] && questionErrors[qIndex].length > 0 && (
+                    <Alert variant="destructive" className="mb-4">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        <ul className="list-disc list-inside text-sm">
+                          {questionErrors[qIndex].map((err, idx) => (
+                            <li key={idx}>{err}</li>
+                          ))}
+                        </ul>
+                      </AlertDescription>
+                    </Alert>
+                  )}
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Question {qIndex + 1}*
