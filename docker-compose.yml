@@ -20,14 +20,14 @@ services:
       - "11434:11434"
     volumes:
       - ollama_data:/root/.ollama
-  cs554-webapp:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    env_file:
-      - .env.production
-    ports:
-      - "3000:3000"
+  # cs554-webapp:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   env_file:
+  #     - .env.production
+  #   ports:
+  #     - "3000:3000"
 
 volumes:
   ollama_data:

@@ -243,49 +243,49 @@ export default function UserHome() {
       </div>
 
       {/* study stats */}
-      <Card className="mb-8">
-        <CardHeader
-          className="pb-2 cursor-pointer"
-          onClick={() => setShowStats(!showStats)}
-        >
-          <div className="flex justify-between items-center">
-            <CardTitle className="flex items-center">
-              <BarChart2 className="mr-2" size={20} />
-              Study Statistics
-            </CardTitle>
-            {showStats ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-          </div>
-        </CardHeader>
+      {/*<Card className="mb-8">*/}
+      {/*  <CardHeader*/}
+      {/*    className="pb-2 cursor-pointer"*/}
+      {/*    onClick={() => setShowStats(!showStats)}*/}
+      {/*  >*/}
+      {/*    <div className="flex justify-between items-center">*/}
+      {/*      <CardTitle className="flex items-center">*/}
+      {/*        <BarChart2 className="mr-2" size={20} />*/}
+      {/*        Study Statistics*/}
+      {/*      </CardTitle>*/}
+      {/*      {showStats ? <ChevronUp size={20} /> : <ChevronDown size={20} />}*/}
+      {/*    </div>*/}
+      {/*  </CardHeader>*/}
 
-        {showStats && (
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 py-2">
-              <div className="bg-primary-foreground p-4 rounded-lg text-center">
-                {/*<p className="text-2xl font-bold">{studyStats.totalCards}</p>*/}
-                <p className="text-sm text-muted-foreground">Total Cards</p>
-              </div>
-              <div className="bg-primary-foreground p-4 rounded-lg text-center">
-                {/*<p className="text-2xl font-bold">{studyStats.cardsStudied}</p>*/}
-                <p className="text-sm text-muted-foreground">Cards Studied</p>
-              </div>
-              <div className="bg-primary-foreground p-4 rounded-lg text-center">
-                {/*<p className="text-2xl font-bold">*/}
-                {/*  {studyStats.quizzesCompleted}*/}
-                {/*</p>*/}
-                <p className="text-sm text-muted-foreground">
-                  Quizzes Completed
-                </p>
-              </div>
-              <div className="bg-primary-foreground p-4 rounded-lg text-center">
-                {/*<p className="text-2xl font-bold">*/}
-                {/*  {studyStats.averageScore.toFixed(1)}%*/}
-                {/*</p>*/}
-                <p className="text-sm text-muted-foreground">Average Score</p>
-              </div>
-            </div>
-          </CardContent>
-        )}
-      </Card>
+      {/*  {showStats && (*/}
+      {/*    <CardContent>*/}
+      {/*      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 py-2">*/}
+      {/*        <div className="bg-primary-foreground p-4 rounded-lg text-center">*/}
+      {/*          /!*<p className="text-2xl font-bold">{studyStats.totalCards}</p>*!/*/}
+      {/*          <p className="text-sm text-muted-foreground">Total Cards</p>*/}
+      {/*        </div>*/}
+      {/*        <div className="bg-primary-foreground p-4 rounded-lg text-center">*/}
+      {/*          /!*<p className="text-2xl font-bold">{studyStats.cardsStudied}</p>*!/*/}
+      {/*          <p className="text-sm text-muted-foreground">Cards Studied</p>*/}
+      {/*        </div>*/}
+      {/*        <div className="bg-primary-foreground p-4 rounded-lg text-center">*/}
+      {/*          /!*<p className="text-2xl font-bold">*!/*/}
+      {/*          /!*  {studyStats.quizzesCompleted}*!/*/}
+      {/*          /!*</p>*!/*/}
+      {/*          <p className="text-sm text-muted-foreground">*/}
+      {/*            Quizzes Completed*/}
+      {/*          </p>*/}
+      {/*        </div>*/}
+      {/*        <div className="bg-primary-foreground p-4 rounded-lg text-center">*/}
+      {/*          /!*<p className="text-2xl font-bold">*!/*/}
+      {/*          /!*  {studyStats.averageScore.toFixed(1)}%*!/*/}
+      {/*          /!*</p>*!/*/}
+      {/*          <p className="text-sm text-muted-foreground">Average Score</p>*/}
+      {/*        </div>*/}
+      {/*      </div>*/}
+      {/*    </CardContent>*/}
+      {/*  )}*/}
+      {/*</Card>*/}
 
       {/* decks */}
       <section className="mb-10">
@@ -460,16 +460,16 @@ export default function UserHome() {
                 <div className="space-x-2">
                   <Button variant="ghost" size="sm" asChild>
                     <Link
-                      href={`/user/quiz-library/${quiz._id.toString()}/edit`}
+                      href={`/user/quiz-library/${quiz._id.toString()}`}
                     >
-                      Edit
+                      View
                     </Link>
                   </Button>
                   <Button variant="ghost" size="sm" asChild>
                     <Link
-                      href={`/user/quiz-library/${quiz._id.toString()}/stats`}
+                      href={`/user/quiz-library/${quiz._id.toString()}/edit`}
                     >
-                      Stats
+                      Edit
                     </Link>
                   </Button>
                 </div>
