@@ -5,6 +5,8 @@ import { Deck, User } from "@/lib/db/data/schema";
 import { unauthorized } from "next/navigation";
 import EditDeckForm from "./EditDeckForm";
 
+
+
 function serializeDeck(deck: Deck): string {
   return (JSON.stringify({
     _id: deck._id.toString(),
@@ -55,9 +57,9 @@ async function getDeck(id: string): Promise<Deck> {
 export default async function EditPage({
   params,
 }: {
-  params: Promise<{ deckId: string }>;
+  params: { deckId: string };
 }) {
-  const { deckId } = await params;
+  const { deckId } =  params;
   try {
     const deck: Deck = await getDeck(deckId);
 
@@ -74,4 +76,10 @@ export default async function EditPage({
       }
     }
   }
+
+  return (
+      <div className="p-6 text-center text-red-500">
+        An unexpected error occurred. Please try again later.
+      </div>
+  );
 }

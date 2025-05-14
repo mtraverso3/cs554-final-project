@@ -1,4 +1,5 @@
 import * as Yup from "yup";
+import * as yup from "yup";
 
 export const StudyProgressSchema = Yup.object({
   currentCardIndex: Yup.number().default(0),
@@ -153,6 +154,32 @@ export const QuizInputSchema = Yup.object({
 
   published: Yup.boolean().default(false).required("Public is required"),
 });
+
+const nameRegex = /^[A-Za-zÀ-ÿ'\-\s]+$/;
+
+export const UserInputSchema = yup.object({
+  firstName: yup
+      .string()
+      .trim()
+      .required("First name is required")
+      .min(1, "Must be non-empty")
+      .matches(nameRegex, 'Only letters, spaces, hyphens, and apostrophes allowed'),
+  lastName: yup
+      .string()
+      .trim()
+      .required("Last name is required")
+      .min(1, "Must be non-empty")
+      .matches(nameRegex, 'Only letters, spaces, hyphens, and apostrophes allowed'),
+  email: yup
+      .string()
+      .trim()
+      .email("Invalid email")
+      .required("Email is required"),
+  sub: yup.string().trim().required("Sub is required"),
+});
+
+export type UserInput = Yup.InferType<typeof UserInputSchema>;
+
 
 export const QuizCreateSchema = Yup.object({
   name: Yup.string()

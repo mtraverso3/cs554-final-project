@@ -2,6 +2,9 @@
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { UserInputSchema } from "@/lib/db/data/safeSchema";
+import * as Yup from "yup";
+
 import { 
   Card, 
   CardHeader, 
@@ -25,6 +28,8 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { updateProfile } from "@/lib/userForms";
 import DeleteAccountButton from "./DeleteAccountButton";
+const MAX_FILE_SIZE_MB = 2;
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 export default function EditProfileClient({ data }: { data: string }) {
   const theData = JSON.parse(data);
@@ -38,37 +43,62 @@ export default function EditProfileClient({ data }: { data: string }) {
   const router = useRouter();
   
   const update = async () => {
-    if (!first.trim() || !last.trim()) {
-      setError("First name and last name are required");
-      return;
-    }
-    
-    setIsSubmitting(true);
-    setError(null);
-    
     try {
-      await updateProfile(first, last, file);
+      // Validate the input using the schema
+      const validatedData = UserInputSchema.validateSync(
+          {
+            firstName: first,
+            lastName: last,
+            email: theData.email,
+            sub: theData.sub ?? "unknown", // or set default/fallback if not available
+          },
+          { abortEarly: false } // collect all validation errors
+      );
+
+      await updateProfile(validatedData.firstName, validatedData.lastName, file);
+
       setSuccess(true);
-      
       setTimeout(() => {
         router.push("/user/profile");
       }, 1500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update profile");
+      if (err instanceof Yup.ValidationError) {
+        setError(err.errors.join(" | "));
+      } else if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Failed to update profile.");
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
-  
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (files && files[0]) {
-      const selectedFile = files[0];
-      const fileUrl = URL.createObjectURL(selectedFile);
-      setFile(fileUrl);
-      setPreviewUrl(fileUrl);
+
+const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const files = event.target.files;
+  if (files && files[0]) {
+    const selectedFile = files[0];
+
+    // Validate file type
+    if (!ALLOWED_IMAGE_TYPES.includes(selectedFile.type)) {
+      setError("Only JPG, PNG, or WEBP images are allowed.");
+      return;
     }
-  };
+
+    // Validate file size
+    const sizeInMB = selectedFile.size / (1024 * 1024);
+    if (sizeInMB > MAX_FILE_SIZE_MB) {
+      setError("Image size must be under 2MB.");
+      return;
+    }
+
+    // Clear any previous errors and set file
+    const fileUrl = URL.createObjectURL(selectedFile);
+    setError(null);
+    setFile(selectedFile);
+    setPreviewUrl(fileUrl);
+  }
+};
   
   const handleCancel = () => {
     router.push("/user/profile");

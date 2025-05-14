@@ -6,6 +6,9 @@ import FlashcardView from "./FlashcardView";
 import { getDeck } from "@/lib/deckForms";
 import CommentSection from "./CommentSection";
 import { Separator } from "@/components/ui/separator";
+import {getDeckById} from "@/lib/db/data/decks";
+
+
 
 function serializeDeck(deck: Deck) {
   return {

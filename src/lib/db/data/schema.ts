@@ -89,37 +89,22 @@ export const DeckSchema = yup.object({
 });
 
 export type Deck = Yup.InferType<typeof DeckSchema>;
+const nameRegex = /^[A-Za-zÀ-ÿ'\-\s]+$/;
 
-export const UserInputSchema = yup.object({
-  firstName: yup
-    .string()
-    .trim()
-    .required("First name is required")
-    .min(1, "Must be non-empty"),
-  lastName: yup
-    .string()
-    .trim()
-    .required("Last name is required")
-    .min(1, "Must be non-empty"),
-  email: yup
-    .string()
-    .trim()
-    .email("Invalid email")
-    .required("Email is required"),
-  sub: yup.string().trim().required("Sub is required"),
-});
 export const UserSchema = yup.object({
   _id: ObjectIdSchema.required(),
   firstName: yup
     .string()
     .trim()
     .required("First name is required")
-    .min(1, "Must be non-empty"),
+    .min(1, "Must be non-empty")
+    .matches(nameRegex, 'Only letters, spaces, hyphens, and apostrophes allowed'),
   lastName: yup
     .string()
     .trim()
     .required("Last name is required")
-    .min(1, "Must be non-empty"),
+    .min(1, "Must be non-empty")
+      .matches(nameRegex, 'Only letters, spaces, hyphens, and apostrophes allowed'),
   email: yup
     .string()
     .trim()
@@ -129,7 +114,6 @@ export const UserSchema = yup.object({
   profilePicture: yup.object().shape({
     file: Yup.mixed().required('File is required')})
 });
-export type UserInput = Yup.InferType<typeof UserInputSchema>;
 export type User = InferType<typeof UserSchema>;
 
 export const QuizEntrySchema = Yup.object({

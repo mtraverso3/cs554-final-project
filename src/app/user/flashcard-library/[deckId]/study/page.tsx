@@ -6,6 +6,8 @@ import { Deck, User } from "@/lib/db/data/schema";
 import { unauthorized } from "next/navigation";
 import StudyView from "./StudyView";
 
+
+
 type FlashcardDTO = {
   _id: string;
   deckId: string;

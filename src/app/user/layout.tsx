@@ -5,6 +5,7 @@ import { auth0 } from "@/lib/auth/auth";
 import { OnboardingPage } from "@/components/onboardingPage";
 import { getNewUser } from "@/lib/userForms";
 
+
 export async function Layout({ children }: { children: React.ReactNode }) {
   const session = await auth0.getSession();
   if (!session) {
